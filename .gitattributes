@@ -1,1 +1,15 @@
+# Normalize line endings (force LF everywhere)
 * text=auto eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.pfx binary
+*.p12 binary
+*.cer binary
+*.crt binary

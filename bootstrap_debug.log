@@ -1,0 +1,22 @@
+**********************
+PowerShell transcript start
+Start time: 20251227132538
+Username: STARLINK_\colby
+RunAs User: STARLINK_\colby
+Configuration Name: 
+Machine: STARLINK_ (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll
+Process ID: 32392
+PSVersion: 7.5.4
+PSEdition: Core
+GitCommitId: 7.5.4
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+Transcript started, output file is C:\Users\colby\OneDrive\Desktop\windowsBurpeSuite\bootstrap_debug.log
+Found 0 .zip file(s) inside repo.
+git version 2.46.2.windows.1

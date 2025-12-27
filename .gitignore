@@ -1,15 +1,28 @@
-# OS / Editor
+# OS
 .DS_Store
 Thumbs.db
-.vscode/
 
-# Logs
-*.log
+# Editor
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Node
+node_modules/
+backend/node_modules/
 
 # Env
 .env
-.env.*
+backend/.env
 
-# Build / tooling (optional)
-dist/
-node_modules/
+# Local backend data
+backend/data/*.json
+
+# Cert artifacts (keep README tracked)
+certs/*
+!certs/README.md
+!certs/.gitkeep
+
+
+# Temporary extraction workspace
+.tmp_zip_extract/

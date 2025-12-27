@@ -1,36 +1,39 @@
 # windowsBurpeSuite
 
-A minimal, browser-based "Burp-like" toolbox (Interceptor / Repeater / Extender-style hooks).
+A minimal, browser-based “Burp-like” toolbox with a clean UI:
 
-This is intentionally **Vanilla HTML/CSS/JS (ES6 modules)**: simple is beautiful.
+- **Dashboard** (target overview + quick actions)
+- **Target** (site map, scope, issue definitions)
+- **Proxy** (intercept, HTTP history, WebSockets history, proxy settings)
+- **Intruder** (positions, payloads, resource pool, settings)
 
-## What this is (and is not)
+This stays **Vanilla HTML/CSS/JS (ES6 modules)**: simple is beautiful.
 
-- **Is:** A clean UI for crafting requests, saving/replaying them, and applying small transform hooks ("extensions").
-- **Is not:** A full proxy that can transparently intercept arbitrary browser traffic (browsers restrict this).
+> Note: This repo includes a **companion backend scaffold** that can run an HTTPS UI and a basic forward proxy listener.
+> It is *not* a full MITM intercepting proxy yet (CONNECT tunnels are pass-through). The TLS/CA docs are included for the next step.
 
 ## Run locally
 
-Option A (Python, if available):
-```bash
-cd src
-python -m http.server 8000
-```
-Then open http://localhost:8000
+### Option A: Static UI (no backend)
+Open `src/index.html` directly, or serve `src/` with any static server.
 
-Option B (Node, if available):
-```bash
-cd src
-npx serve .
-```
+Examples:
+- Python: `python -m http.server 5173` (run inside `src/`)
+- Node: `npx serve .` (run inside `src/`)
 
-## Recommended route (practical)
+### Option B: Companion backend (recommended for “Burp-like” flow)
+1) Generate/trust local certs (see `docs/tls-ca.md`)
+2) Run backend:
+- `cd backend`
+- `node server.mjs`
 
-1) Keep this **Vanilla** UI as the front-end foundation (fast iteration, no build step).
-2) Add an **optional local companion backend** later (Python FastAPI or Node) to:
-- proxy requests to avoid CORS issues
-- support raw HTTP (custom headers, cookies, redirects) more faithfully
-- enable "true repeater" with timing, diffing, and history persistence
-3) Only introduce React/TS/Vue/Astro if the UI complexity grows (plugins marketplace, multi-pane layouts, heavy state).
+Backend defaults:
+- HTTPS UI: `https://localhost:8443`
+- Proxy listener: `http://127.0.0.1:8080`
 
-See `docs/architecture.md` and `docs/roadmap.md`.
+## FoxyProxy / Firefox setup
+See `docs/foxyproxy.md`.
+
+## GitLab deploy (static UI)
+This repo includes a minimal GitLab Pages pipeline that publishes `src/` as static content.
+See `.gitlab-ci.yml`.
