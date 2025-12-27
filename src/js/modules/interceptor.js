@@ -9,8 +9,13 @@ function byId(id) {
   return document.getElementById(id);
 }
 
+function setText(id, text) {
+  const el = byId(id);
+  if (el) el.textContent = text;
+}
+
 export async function sendFromForm(cfg) {
-  const method = byId("req-method").value.trim().toUpperCase();
+  const method = byId("req-method").value.trim().toUpperCase() || "GET";
   const url = byId("req-url").value.trim();
   const body = byId("req-body").value;
 
@@ -19,6 +24,10 @@ export async function sendFromForm(cfg) {
     return;
   }
 
+  setText("res-meta", "Sending…");
+  setText("res-headers", "—");
+  setText("res-body", "—");
+
   const hdrs = window.__wbsHeaders?.get?.() || {};
   const headers = maybeLowercaseHeaderKeys(hdrs, cfg);
 
@@ -26,25 +35,42 @@ export async function sendFromForm(cfg) {
   const hasBody = !["GET", "HEAD"].includes(method);
   if (hasBody && body.trim().length) init.body = body;
 
-  const t0 = performance.now();
-  const res = await fetch(url, init);
-  const t1 = performance.now();
+  try {
+    const t0 = performance.now();
+    const res = await fetch(url, init);
+    const t1 = performance.now();
 
-  byId("res-meta").textContent = `${res.status} ${res.statusText} • ${(
-    t1 - t0
-  ).toFixed(0)}ms`;
+    setText(
+      "res-meta",
+      `${res.status} ${res.statusText} • ${(t1 - t0).toFixed(0)}ms`
+    );
 
-  const headerLines = [];
-  res.headers.forEach((v, k) => headerLines.push(`${k}: ${v}`));
-  byId("res-headers").textContent =
-    maybeTrimHeaders(headerLines.join("\n"), cfg) || "—";
+    const headerLines = [];
+    res.headers.forEach((v, k) => headerLines.push(`${k}: ${v}`));
+    setText(
+      "res-headers",
+      maybeTrimHeaders(headerLines.join("\n"), cfg) || "—"
+    );
 
-  const raw = await res.text();
-  byId("res-body").textContent = maybePrettyJson(raw, cfg) || "—";
+    const raw = await res.text();
+    const ct = res.headers.get("content-type") || "";
+    setText("res-body", maybePrettyJson(raw, cfg, ct) || "—");
+  } catch (err) {
+    const msg =
+      err && err.message ? err.message : String(err || "Unknown error");
+    setText("res-meta", "Request failed (CORS / network)");
+    setText("res-body", msg);
+
+    // Helpful hint for local dev
+    console.warn(
+      "Fetch failed. If this is CORS, run: python .\\scripts\\dev-echo.py",
+      err
+    );
+  }
 }
 
 export function saveCurrentToRepeater() {
-  const method = byId("req-method").value.trim().toUpperCase();
+  const method = byId("req-method").value.trim().toUpperCase() || "GET";
   const url = byId("req-url").value.trim();
   const body = byId("req-body").value;
 

@@ -2,154 +2,230 @@ function byId(id) {
   return document.getElementById(id);
 }
 
-function el(tag, attrs = {}, children = []) {
-  const node = document.createElement(tag);
-  Object.entries(attrs).forEach(([k, v]) => {
-    if (k === "class") node.className = v;
-    else if (k.startsWith("on") && typeof v === "function")
-      node.addEventListener(k.slice(2), v);
-    else node.setAttribute(k, v);
-  });
-  children.forEach((c) =>
-    node.appendChild(typeof c === "string" ? document.createTextNode(c) : c)
-  );
-  return node;
+const STORE_KEY = "wbs_headers_v1";
+
+const els = {
+  rows: null,
+  add: null,
+  imp: null,
+  exp: null,
+  clr: null,
+  io: null,
+  raw: null,
+  apply: null,
+  copy: null,
+};
+
+function normalizeLines(text) {
+  return String(text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
 }
 
-function normalizeHeadersObj(h) {
-  const out = {};
-  for (const [k, v] of Object.entries(h || {})) {
-    const key = String(k).trim();
-    if (!key) continue;
-    out[key] = String(v ?? "");
-  }
-  return out;
-}
-
-function parseRawHeaders(raw) {
-  const out = {};
-  const lines = String(raw ?? "").split(/\r?\n/);
-  for (const line of lines) {
+function parseRawHeaders(text) {
+  const headers = {};
+  const lines = normalizeLines(text).split("\n");
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (!line.trim()) continue;
     const idx = line.indexOf(":");
     if (idx <= 0) continue;
     const k = line.slice(0, idx).trim();
     const v = line.slice(idx + 1).trim();
-    if (!k) continue;
-    out[k] = v;
+    if (k) headers[k] = v;
   }
-  return out;
+  return headers;
 }
 
-function toRawHeaders(h) {
-  return Object.entries(h || {})
+function headersToText(obj) {
+  return Object.entries(obj || {})
     .map(([k, v]) => `${k}: ${v}`)
     .join("\n");
 }
 
+function readRowsToHeaders() {
+  const out = {};
+  const rows = els.rows.querySelectorAll(".hdr-row");
+  for (const row of rows) {
+    const inputs = row.querySelectorAll("input");
+    const k = inputs[0]?.value?.trim() ?? "";
+    const v = inputs[1]?.value ?? "";
+    if (!k) continue;
+    out[k] = String(v).trim();
+  }
+  return out;
+}
+
+function persistCurrent() {
+  try {
+    const headers = readRowsToHeaders();
+    localStorage.setItem(STORE_KEY, JSON.stringify(headers));
+  } catch {}
+}
+
+function loadPersisted() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function addRow(key = "", value = "") {
+  const row = document.createElement("div");
+  row.className = "hdr-row";
+
+  const keyInput = document.createElement("input");
+  keyInput.className = "input";
+  keyInput.type = "text";
+  keyInput.spellcheck = false;
+  keyInput.placeholder = "Header";
+  keyInput.value = key;
+
+  const valInput = document.createElement("input");
+  valInput.className = "input";
+  valInput.type = "text";
+  valInput.spellcheck = false;
+  valInput.placeholder = "Value";
+  valInput.value = value;
+
+  const delBtn = document.createElement("button");
+  delBtn.type = "button";
+  delBtn.className = "btn danger";
+  delBtn.title = "Remove header";
+  delBtn.textContent = "×";
+  delBtn.addEventListener("click", () => {
+    row.remove();
+    ensureAtLeastOneRow();
+    persistCurrent();
+  });
+
+  const onChange = () => {
+    // Keep raw in sync if IO panel is visible.
+    if (els.raw && !els.io.classList.contains("is-hidden")) {
+      els.raw.value = headersToText(readRowsToHeaders());
+    }
+    persistCurrent();
+  };
+
+  keyInput.addEventListener("input", onChange);
+  valInput.addEventListener("input", onChange);
+
+  row.appendChild(keyInput);
+  row.appendChild(valInput);
+  row.appendChild(delBtn);
+  els.rows.appendChild(row);
+
+  return row;
+}
+
+function clearRows() {
+  els.rows.innerHTML = "";
+}
+
+function ensureAtLeastOneRow() {
+  if (els.rows.querySelectorAll(".hdr-row").length === 0) addRow("", "");
+}
+
+function openIO() {
+  els.io.classList.remove("is-hidden");
+  // Fill textarea with current headers for convenience.
+  els.raw.value = headersToText(readRowsToHeaders());
+  els.raw.focus();
+}
+
+function closeIO() {
+  els.io.classList.add("is-hidden");
+}
+
+function exportToRaw() {
+  els.raw.value = headersToText(readRowsToHeaders());
+  openIO();
+  els.raw.select();
+}
+
+function importFromRaw() {
+  const headers = parseRawHeaders(els.raw.value);
+  setHeaders(headers);
+  closeIO();
+}
+
+async function copyRaw() {
+  const text = String(els.raw.value ?? "");
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // fallback: select text for manual copy
+    els.raw.focus();
+    els.raw.select();
+  }
+}
+
 export function initHeaderEditor({ defaults = {} } = {}) {
-  const rowsWrap = byId("hdr-rows");
-  const btnAdd = byId("hdr-add");
-  const btnImport = byId("hdr-import");
-  const btnExport = byId("hdr-export");
-  const btnClear = byId("hdr-clear");
+  els.rows = byId("hdr-rows");
+  els.add = byId("hdr-add");
+  els.imp = byId("hdr-import");
+  els.exp = byId("hdr-export");
+  els.clr = byId("hdr-clear");
+  els.io = byId("hdr-io");
+  els.raw = byId("hdr-raw");
+  els.apply = byId("hdr-apply");
+  els.copy = byId("hdr-copy");
 
-  const ioWrap = byId("hdr-io");
-  const rawTa = byId("hdr-raw");
-  const btnApply = byId("hdr-apply");
-  const btnCopy = byId("hdr-copy");
+  if (!els.rows) return;
 
-  const state = {
-    headers: normalizeHeadersObj(defaults),
-  };
+  els.add.addEventListener("click", () => {
+    const row = addRow("", "");
+    row.querySelector("input")?.focus();
+    persistCurrent();
+  });
 
-  function qaRows() {
-    return Array.from(rowsWrap.querySelectorAll(".hdr-row"));
+  els.imp.addEventListener("click", () => openIO());
+  els.exp.addEventListener("click", () => exportToRaw());
+
+  els.clr.addEventListener("click", () => {
+    clearRows();
+    ensureAtLeastOneRow();
+    persistCurrent();
+    if (els.raw) els.raw.value = "";
+  });
+
+  els.apply.addEventListener("click", () => importFromRaw());
+  els.copy.addEventListener("click", () => copyRaw());
+
+  // Escape closes IO panel
+  els.raw.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeIO();
+  });
+
+  // Seed defaults + persisted
+  clearRows();
+  const persisted = loadPersisted() || {};
+  const seed = { ...defaults, ...persisted };
+
+  if (seed && typeof seed === "object" && Object.keys(seed).length > 0) {
+    for (const [k, v] of Object.entries(seed)) addRow(k, v);
+  } else {
+    addRow("Accept", "application/json");
   }
+  ensureAtLeastOneRow();
+  persistCurrent();
 
-  function makeRow(k = "", v = "") {
-    const key = el("input", { placeholder: "Header", value: k });
-    const val = el("input", { placeholder: "Value", value: v });
-    const del = el("button", { class: "btn danger", type: "button" }, ["×"]);
-
-    const row = el("div", { class: "hdr-row" }, [key, val, del]);
-
-    function syncFromInputs() {
-      const out = {};
-      qaRows().forEach((r) => {
-        const kk = r.querySelector("input:nth-child(1)").value.trim();
-        const vv = r.querySelector("input:nth-child(2)").value;
-        if (!kk) return;
-        out[kk] = vv;
-      });
-      state.headers = out;
-    }
-
-    key.addEventListener("input", syncFromInputs);
-    val.addEventListener("input", syncFromInputs);
-
-    del.addEventListener("click", () => {
-      row.remove();
-      syncFromInputs();
-    });
-
-    return row;
-  }
-
-  function render() {
-    rowsWrap.innerHTML = "";
-    const entries = Object.entries(state.headers || {});
-    if (entries.length === 0) {
-      rowsWrap.appendChild(makeRow("", ""));
-    } else {
-      entries.forEach(([k, v]) => rowsWrap.appendChild(makeRow(k, v)));
-    }
-  }
-
-  function showIo(on) {
-    ioWrap.classList.toggle("is-hidden", !on);
-  }
-
-  btnAdd.addEventListener("click", () => {
-    rowsWrap.appendChild(makeRow("", ""));
-  });
-
-  btnImport.addEventListener("click", () => {
-    showIo(true);
-    rawTa.value = toRawHeaders(state.headers);
-    rawTa.focus();
-  });
-
-  btnExport.addEventListener("click", () => {
-    showIo(true);
-    rawTa.value = toRawHeaders(state.headers);
-    rawTa.focus();
-  });
-
-  btnClear.addEventListener("click", () => {
-    state.headers = {};
-    render();
-    showIo(false);
-  });
-
-  btnApply.addEventListener("click", () => {
-    state.headers = parseRawHeaders(rawTa.value);
-    render();
-    showIo(false);
-  });
-
-  btnCopy.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(rawTa.value);
-    } catch {}
-  });
-
-  render();
-
+  // Shared global access for other modules.
   window.__wbsHeaders = {
-    get: () => ({ ...state.headers }),
-    set: (h) => {
-      state.headers = normalizeHeadersObj(h);
-      render();
-    },
+    get: () => readRowsToHeaders(),
+    set: (obj) => setHeaders(obj),
   };
+}
+
+export function setHeaders(obj) {
+  clearRows();
+  for (const [k, v] of Object.entries(obj || {})) addRow(k, v);
+  ensureAtLeastOneRow();
+  persistCurrent();
+  if (els.raw) els.raw.value = headersToText(readRowsToHeaders());
 }

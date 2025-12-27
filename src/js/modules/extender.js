@@ -2,11 +2,33 @@ function byId(id) {
   return document.getElementById(id);
 }
 
-const state = {
+const STORE_KEY = "wbs_ext_v1";
+
+const defaults = {
   prettyJson: false,
   trimHeaders: true,
   lowercaseKeys: false,
 };
+
+const state = { ...defaults, ...loadState() };
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed;
+  } catch {
+    return {};
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  } catch {}
+}
 
 export function bindExtenderControls() {
   const pretty = byId("ext-pretty-json");
@@ -14,26 +36,29 @@ export function bindExtenderControls() {
   const lower = byId("ext-lowercase-keys");
 
   function sync() {
-    if (pretty) pretty.checked = state.prettyJson;
-    if (trim) trim.checked = state.trimHeaders;
-    if (lower) lower.checked = state.lowercaseKeys;
+    if (pretty) pretty.checked = !!state.prettyJson;
+    if (trim) trim.checked = !!state.trimHeaders;
+    if (lower) lower.checked = !!state.lowercaseKeys;
   }
 
   if (pretty) {
     pretty.addEventListener("change", () => {
       state.prettyJson = pretty.checked;
+      saveState();
     });
   }
 
   if (trim) {
     trim.addEventListener("change", () => {
       state.trimHeaders = trim.checked;
+      saveState();
     });
   }
 
   if (lower) {
     lower.addEventListener("change", () => {
       state.lowercaseKeys = lower.checked;
+      saveState();
     });
   }
 
@@ -44,8 +69,22 @@ export function getExtenderConfig() {
   return { ...state };
 }
 
-export function maybePrettyJson(text, cfg) {
+function looksLikeJson(text) {
+  const t = String(text ?? "").trim();
+  return t.startsWith("{") || t.startsWith("[");
+}
+
+export function maybePrettyJson(text, cfg, contentType = "") {
   if (!cfg.prettyJson) return text;
+
+  const ct = String(contentType || "").toLowerCase();
+  const isJson =
+    ct.includes("application/json") ||
+    ct.includes("+json") ||
+    looksLikeJson(text);
+
+  if (!isJson) return text;
+
   try {
     const parsed = JSON.parse(text);
     return JSON.stringify(parsed, null, 2);
