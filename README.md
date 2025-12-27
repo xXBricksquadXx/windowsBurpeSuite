@@ -1,26 +1,74 @@
 # windowsBurpeSuite
 
-A minimal, browser-based “Burp-like” toolbox for **manual request crafting + replay + diff**.
+A minimal, browser-based “Burp-like” toolbox for **manual request crafting + local history + replay + diff**.
 
-This is **not** a system proxy / MITM tool. It is a lightweight UI that sends requests via the browser (`fetch()`), saves them to local history, and supports replay + diff.
+This is **not** a system proxy / MITM tool. It is a lightweight UI that sends requests via the browser (`fetch()`), saves them to local history (`localStorage`), and supports replay + diff.
+
+## What this is / isn’t
+
+**This is:**
+
+- A request builder (method / URL / headers / body)
+- A history list (save, select, replay)
+- A simple diff view (compare last replay response vs current)
+- A “raw request preview” you can copy/paste for notes
+
+**This is NOT (yet):**
+
+- A system proxy
+- CONNECT tunneling
+- MITM TLS interception
+- A CORS-bypass tool (browser rules still apply)
 
 ## Current status
 
-**Phase 0 (current):**
+### Phase 1 (current)
 
-- Proxy → **Intercept**: build a request (method / URL / headers / body), send, view response
-- Proxy → **HTTP history**: save requests, select one, replay it
-- **Replay**: Raw / Diff toggle
-- **Headers editor**: row-based editor + raw import/export
-- **Proxy settings** toggles: pretty-print JSON, lowercase header keys, trim response headers
-- `scripts/dev-echo.py`: local echo target for sanity tests
+**Proxy → Intercept**
 
-**Phase 1 (next):**
+- Build request: method / URL / headers / body
+- **Send** (direct browser fetch)
+- Response: status/meta + headers + body
+- **Reset request** (panel-safe)
+- **Clear response**
+- **Raw request preview** + **Copy preview**
 
-- Editing/crafting flow between History ↔ Intercept (Edit / Save as new / Overwrite)
-- Better request presets and templates
-- Target scaffolding (scope list + sitemap placeholder)
-- Optional: GitLab Pages deploy
+**Proxy → HTTP history**
+
+- **Save as new** (creates a new history item)
+- **Row click** = load into Intercept in **edit mode** and auto-select the URL field
+- **Select button** = select for replay + prime Intercept without edit mode
+- **Overwrite selected** (only enabled when you entered edit mode via row click)
+
+**Replay**
+
+- Replay selected request
+- Toggle **Raw / Diff**
+- Diff compares **last replay body** for that request id vs current replay body
+
+**Headers editor**
+
+- Row-based editor
+- Raw import/export
+- Persists to localStorage
+
+**Proxy settings**
+
+- Pretty-print JSON responses
+- Lowercase header keys on send
+- Trim response headers display
+
+**Local echo target**
+
+- `scripts/dev-echo.py` provides a CORS-friendly local target for sanity tests
+
+### Phase 1.2 (next)
+
+**Target tab becomes functional**
+
+- **Scope**: define in-scope hosts/paths (string rules or regex)
+- **Site map**: build a host/path tree from saved history
+- Optional: highlight in-scope/out-of-scope items in History
 
 ## Run locally
 
@@ -30,7 +78,7 @@ From repo root:
 
 ```powershell
 python -m http.server 5173 -d .\src
-Start-Process "http://localhost:5173/"
+Start-Process "http://127.0.0.1:5173/"
 ```
 
 ### 2) Run local echo target (recommended)
@@ -41,7 +89,7 @@ From repo root:
 python .\scripts\dev-echo.py
 ```
 
-## Phase 0 sanity tests
+## Sanity tests
 
 ### A) GET
 
@@ -50,6 +98,11 @@ Proxy → Intercept
 - Method: `GET`
 - URL: `http://127.0.0.1:8787/hello`
 - Send
+
+Expected:
+
+- `res-meta` shows `200 OK` + timing
+- `res-body` returns JSON or text from echo
 
 ### B) POST JSON
 
@@ -68,13 +121,28 @@ Proxy → Intercept
 { "ping": "pong" }
 ```
 
-- Send
+Expected:
 
-### C) Save + Replay + Diff
+- Echo includes your body + headers
 
-- Proxy → Intercept → **Save**
-- Proxy → HTTP history → **Select** → **Replay**
-- Toggle **Raw / Diff** to confirm diffs render
+### C) Save + Edit + Overwrite
+
+1. Intercept → **Save as new**
+2. Proxy → HTTP history
+3. **Click the row** (not Select)
+
+   - Should jump to Intercept and highlight/select URL
+   - **Overwrite selected** should enable
+
+4. Edit URL/body, then click **Overwrite selected**
+5. Go back to HTTP history → confirm the saved entry updated
+
+### D) Replay + Diff
+
+1. Select a request
+2. Replay (Raw)
+3. Change server response (or edit request) and Replay again
+4. Switch to Diff view
 
 ## Repo layout
 
@@ -104,7 +172,7 @@ windowsBurpeSuite/
 Because this phase runs entirely in the browser:
 
 - **CORS applies** (you can only call targets that allow it)
-- some headers are browser-managed (can’t be manually set)
-- no socket-level proxying / CONNECT tunneling
+- Some headers are browser-managed (can’t be manually set)
+- No socket-level proxying / CONNECT tunneling
 
-If you need to hit non-CORS targets, that becomes a later phase (optional lightweight companion backend).
+If you need non-CORS targets, that becomes a later optional phase with a lightweight companion backend.

@@ -1,5 +1,10 @@
 import { bindNavigation, navigateTo } from "./ui.js";
-import { sendFromForm, saveCurrentToRepeater } from "./modules/interceptor.js";
+import {
+  sendFromForm,
+  saveCurrentToRepeater,
+  overwriteFromForm,
+  updateRequestPreview,
+} from "./modules/interceptor.js";
 import {
   renderSavedList,
   clearAllSaved,
@@ -23,19 +28,58 @@ function wireInterceptor() {
     const id = saveCurrentToRepeater();
     if (id) {
       navigateTo("proxy", "http");
-      renderSavedList({ onSelect: (selectedId) => setSelectedId(selectedId) });
+      renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
     }
   });
+
+  const btnOverwrite = byId("btn-overwrite");
+  if (btnOverwrite) {
+    btnOverwrite.addEventListener("click", async () => {
+      const overwrittenId = await overwriteFromForm();
+      if (overwrittenId) {
+        renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
+        setSelectedId(overwrittenId);
+        navigateTo("proxy", "http");
+      }
+    });
+  }
+
+  const btnCopyPreview = byId("btn-copy-preview");
+  if (btnCopyPreview) {
+    btnCopyPreview.addEventListener("click", async () => {
+      const pre = byId("req-preview");
+      const text = pre?.textContent || "";
+      if (!text || text === "—") return;
+
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        // ignore; user can manually select/copy from the pre
+      }
+    });
+  }
+
+  // Update preview on form changes
+  const update = () => updateRequestPreview(getExtenderConfig());
+  ["req-method", "req-url", "req-body"].forEach((id) => {
+    const el = byId(id);
+    if (el) el.addEventListener("input", update);
+    if (el) el.addEventListener("change", update);
+  });
+
+  // Headers editor + settings toggles dispatch events
+  window.addEventListener("wbs:headers-changed", update);
+  window.addEventListener("wbs:extender-changed", update);
 }
 
 function wireRepeater() {
   byId("btn-refresh").addEventListener("click", () => {
-    renderSavedList({ onSelect: (selectedId) => setSelectedId(selectedId) });
+    renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
   });
 
   byId("btn-clear").addEventListener("click", () => {
     clearAllSaved();
-    renderSavedList({ onSelect: (selectedId) => setSelectedId(selectedId) });
+    renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
   });
 
   byId("btn-replay").addEventListener("click", async () => {
@@ -77,7 +121,10 @@ function bootstrap() {
   wireRepeater();
   wireReplayViewToggle();
 
-  renderSavedList({ onSelect: (selectedId) => setSelectedId(selectedId) });
+  renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
+
+  // initial preview render
+  updateRequestPreview(getExtenderConfig());
 }
 
 bootstrap();

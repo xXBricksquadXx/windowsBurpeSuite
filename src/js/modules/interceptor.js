@@ -3,7 +3,7 @@ import {
   maybeTrimHeaders,
   maybeLowercaseHeaderKeys,
 } from "./extender.js";
-import { loadSaved, saveSaved } from "./storage.js";
+import { loadSaved, saveSaved, updateSavedById } from "./storage.js";
 
 function byId(id) {
   return document.getElementById(id);
@@ -17,6 +17,20 @@ function setText(id, text) {
 function hideHeaderIO() {
   const io = byId("hdr-io");
   if (io) io.classList.add("is-hidden");
+}
+
+let editId = null;
+
+function setEditMeta() {
+  const meta = byId("edit-meta");
+  const btn = byId("btn-overwrite");
+
+  if (meta) {
+    meta.textContent = editId
+      ? `Editing history item (${editId}) — overwrite enabled`
+      : "Draft (not linked to history)";
+  }
+  if (btn) btn.disabled = !editId;
 }
 
 export function clearResponsePanel() {
@@ -41,15 +55,16 @@ export function resetRequestForm() {
   if (url) url.value = "";
   if (body) body.value = "";
 
-  // Reset headers to a sensible default.
-  // This intentionally overwrites persisted headers (explicit action).
   const defaultHeaders = { Accept: "application/json" };
   window.__wbsHeaders?.set?.(defaultHeaders);
 
   hideHeaderIO();
+
+  editId = null;
+  setEditMeta();
 }
 
-export function loadRequestToForm(item) {
+export function loadRequestToForm(item, { mode = "view" } = {}) {
   if (!item) return;
 
   const method = byId("req-method");
@@ -62,26 +77,112 @@ export function loadRequestToForm(item) {
 
   window.__wbsHeaders?.set?.(item.headers || {});
   hideHeaderIO();
+
+  editId = mode === "edit" ? item.id : null;
+  setEditMeta();
 }
 
-function bindInterceptorUtilities() {
+export function getEditId() {
+  return editId;
+}
+
+export function buildRequestPreview(cfg) {
+  const method = byId("req-method")?.value?.trim().toUpperCase() || "GET";
+  const urlStr = byId("req-url")?.value?.trim() || "";
+  const body = byId("req-body")?.value ?? "";
+
+  const hdrs = window.__wbsHeaders?.get?.() || {};
+  const headers = maybeLowercaseHeaderKeys(hdrs, cfg);
+
+  let host = "";
+  let path = urlStr;
+
+  try {
+    const u = new URL(urlStr);
+    host = u.host;
+    path = `${u.pathname}${u.search}`;
+  } catch {
+    // leave as-is
+  }
+
+  const lines = [];
+  lines.push(`${method} ${path || "/"} HTTP/1.1`);
+  if (host) lines.push(`Host: ${host}`);
+
+  for (const [k, v] of Object.entries(headers || {})) {
+    if (String(k).toLowerCase() === "host") continue;
+    lines.push(`${k}: ${v}`);
+  }
+
+  lines.push("");
+  if (!["GET", "HEAD"].includes(method) && String(body || "").length) {
+    lines.push(String(body));
+  }
+
+  return lines.join("\n");
+}
+
+export function updateRequestPreview(cfg) {
+  const pre = byId("req-preview");
+  if (!pre) return;
+  const text = buildRequestPreview(cfg);
+  pre.textContent = text || "—";
+}
+
+export async function overwriteFromForm() {
+  if (!editId) {
+    alert("No history item in edit mode. Click a history row to edit.");
+    return null;
+  }
+
+  const method = byId("req-method").value.trim().toUpperCase() || "GET";
+  const url = byId("req-url").value.trim();
+  const body = byId("req-body").value;
+
+  if (!url) {
+    alert("URL required");
+    return null;
+  }
+
+  const headers = window.__wbsHeaders?.get?.() || {};
+
+  const ok = updateSavedById(editId, {
+    ts: Date.now(),
+    method,
+    url,
+    headers,
+    body,
+  });
+
+  if (!ok) {
+    alert("Selected history item no longer exists.");
+    editId = null;
+    setEditMeta();
+    return null;
+  }
+
+  const overwrittenId = editId;
+  editId = null;
+  setEditMeta();
+
+  return overwrittenId;
+}
+
+function bindInterceptorUtilitiesOnce() {
   const btnReset = byId("btn-reset-request");
   const btnClearRes = byId("btn-clear-response");
 
-  // Avoid double-binding if app hot-reloads or re-imports.
-  if (btnReset && !btnReset.dataset.bound) {
-    btnReset.dataset.bound = "1";
+  if (btnReset) {
     btnReset.addEventListener("click", () => resetRequestForm());
   }
-
-  if (btnClearRes && !btnClearRes.dataset.bound) {
-    btnClearRes.dataset.bound = "1";
+  if (btnClearRes) {
     btnClearRes.addEventListener("click", () => clearResponsePanel());
   }
+
+  setEditMeta();
 }
 
-// Bind immediately (script loads at end of body).
-bindInterceptorUtilities();
+bindInterceptorUtilitiesOnce();
 
 export async function sendFromForm(cfg) {
   const method = byId("req-method").value.trim().toUpperCase() || "GET";
@@ -160,6 +261,9 @@ export function saveCurrentToRepeater() {
   const all = loadSaved();
   all.unshift(item);
   saveSaved(all);
+
+  editId = null;
+  setEditMeta();
 
   return item.id;
 }

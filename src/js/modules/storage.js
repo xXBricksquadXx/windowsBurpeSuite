@@ -58,3 +58,21 @@ export function loadSaved() {
 export function saveSaved(items) {
   localStorage.setItem(KEY, JSON.stringify(items || []));
 }
+
+export function getSavedById(id) {
+  if (!id) return null;
+  const items = loadSaved();
+  return items.find((x) => x.id === id) || null;
+}
+
+export function updateSavedById(id, patch) {
+  if (!id) return false;
+
+  const items = loadSaved();
+  const idx = items.findIndex((x) => x.id === id);
+  if (idx < 0) return false;
+
+  items[idx] = { ...items[idx], ...patch, id };
+  saveSaved(items);
+  return true;
+}

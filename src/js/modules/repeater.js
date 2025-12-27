@@ -32,9 +32,9 @@ function formatTs(ts) {
   }
 }
 
-function setReplayTitle(item) {
+function setReplayTitle(text) {
   const el = byId("replay-title");
-  if (el) el.textContent = `Selected: ${item.method} ${item.url}`;
+  if (el) el.textContent = text;
 }
 
 function makeListItem(item, { onSelect } = {}) {
@@ -63,26 +63,26 @@ function makeListItem(item, { onSelect } = {}) {
   btn.type = "button";
   btn.textContent = "Select";
 
-  // Select button: keep current behavior (select updates right panel), and also prime Intercept form.
+  // Select: selects for replay (right panel). Does NOT enable overwrite.
   btn.addEventListener("click", (e) => {
-    e.stopPropagation(); // don't trigger row-click edit
+    e.stopPropagation();
     selectedId = item.id;
     if (onSelect) onSelect(item.id);
-    setReplayTitle(item);
+    setReplayTitle(`Selected: ${item.method} ${item.url}`);
     syncSelectedStyles();
 
-    // Prime Intercept with the selected request (no nav)
-    loadRequestToForm(item);
+    // Convenience: primes Intercept without edit mode
+    loadRequestToForm(item, { mode: "view" });
   });
 
-  // Row click (mouse-select to edit): select + navigate to Intercept + focus URL
+  // Row click: enter edit mode (loads into Intercept, focuses URL)
   wrap.addEventListener("click", () => {
     selectedId = item.id;
     if (onSelect) onSelect(item.id);
-    setReplayTitle(item);
+    setReplayTitle(`Selected: ${item.method} ${item.url}`);
     syncSelectedStyles();
 
-    loadRequestToForm(item);
+    loadRequestToForm(item, { mode: "edit" });
     navigateTo("proxy", "intercept");
     focusUrlField({ select: true });
   });
@@ -101,14 +101,14 @@ export function renderSavedList({ onSelect } = {}) {
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "meta";
-    empty.textContent = "No saved requests yet. Use Proxy → Intercept → Save.";
+    empty.textContent =
+      "No saved requests yet. Use Proxy → Intercept → Save as new.";
     list.appendChild(empty);
+    setSelectedId(null);
     return;
   }
 
   items.forEach((it) => list.appendChild(makeListItem(it, { onSelect })));
-
-  // If nothing is selected, keep selection null; otherwise re-apply highlight.
   syncSelectedStyles();
 }
 
@@ -117,15 +117,9 @@ export function clearAllSaved() {
   selectedId = null;
   lastBodyById.clear();
 
-  const t = byId("replay-title");
-  if (t) t.textContent = "Select a saved request";
-
-  const out = byId("replay-out");
-  if (out) out.textContent = "—";
-
-  const diffEl = byId("replay-diff");
-  if (diffEl) diffEl.innerHTML = "—";
-
+  setReplayTitle("Select a saved request");
+  byId("replay-out").textContent = "—";
+  byId("replay-diff").innerHTML = "—";
   syncSelectedStyles();
 }
 
@@ -159,17 +153,16 @@ export async function replaySelected(cfg) {
   const out = byId("replay-out");
   const diffEl = byId("replay-diff");
 
-  byId("replay-title").textContent = `Replaying: ${item.method} ${item.url}`;
+  setReplayTitle(`Replaying: ${item.method} ${item.url}`);
 
   const prev = lastBodyById.get(selectedId) || "";
 
   const res = await fetchReplay(item, cfg);
-  byId("replay-title").textContent = `Replay: ${res.meta}`;
+  setReplayTitle(`Replay: ${res.meta}`);
 
   out.textContent = res.body || "—";
 
   const d = diffText(prev, res.body || "");
   diffEl.innerHTML = renderDiff(d);
-
   lastBodyById.set(selectedId, res.body || "");
 }

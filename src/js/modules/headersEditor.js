@@ -56,11 +56,16 @@ function readRowsToHeaders() {
   return out;
 }
 
+function emitChanged() {
+  window.dispatchEvent(new CustomEvent("wbs:headers-changed"));
+}
+
 function persistCurrent() {
   try {
     const headers = readRowsToHeaders();
     localStorage.setItem(STORE_KEY, JSON.stringify(headers));
   } catch {}
+  emitChanged();
 }
 
 function loadPersisted() {
@@ -105,7 +110,6 @@ function addRow(key = "", value = "") {
   });
 
   const onChange = () => {
-    // Keep raw in sync if IO panel is visible.
     if (els.raw && !els.io.classList.contains("is-hidden")) {
       els.raw.value = headersToText(readRowsToHeaders());
     }
@@ -133,7 +137,6 @@ function ensureAtLeastOneRow() {
 
 function openIO() {
   els.io.classList.remove("is-hidden");
-  // Fill textarea with current headers for convenience.
   els.raw.value = headersToText(readRowsToHeaders());
   els.raw.focus();
 }
@@ -159,7 +162,6 @@ async function copyRaw() {
   try {
     await navigator.clipboard.writeText(text);
   } catch {
-    // fallback: select text for manual copy
     els.raw.focus();
     els.raw.select();
   }
@@ -197,12 +199,10 @@ export function initHeaderEditor({ defaults = {} } = {}) {
   els.apply.addEventListener("click", () => importFromRaw());
   els.copy.addEventListener("click", () => copyRaw());
 
-  // Escape closes IO panel
   els.raw.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeIO();
   });
 
-  // Seed defaults + persisted
   clearRows();
   const persisted = loadPersisted() || {};
   const seed = { ...defaults, ...persisted };
@@ -215,7 +215,6 @@ export function initHeaderEditor({ defaults = {} } = {}) {
   ensureAtLeastOneRow();
   persistCurrent();
 
-  // Shared global access for other modules.
   window.__wbsHeaders = {
     get: () => readRowsToHeaders(),
     set: (obj) => setHeaders(obj),

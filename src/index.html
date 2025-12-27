@@ -52,13 +52,13 @@
               <div class="list-item">
                 <div class="list-item__text">
                   <div class="list-item__title">Current</div>
-                  <div class="list-item__sub">Phase 0 — UI scaffold</div>
+                  <div class="list-item__sub">Phase 1 — request builder + history + tooling</div>
                 </div>
               </div>
               <div class="list-item">
                 <div class="list-item__text">
                   <div class="list-item__title">Next</div>
-                  <div class="list-item__sub">Phase 1 — request builder + history + tooling</div>
+                  <div class="list-item__sub">Phase 1.2 — Target: scope + site map from history</div>
                 </div>
               </div>
               <div class="list-item">
@@ -88,19 +88,19 @@
               <div class="list-item">
                 <div class="list-item__text">
                   <div class="list-item__title">Save to history</div>
-                  <div class="list-item__sub">Proxy → Intercept → Save</div>
+                  <div class="list-item__sub">Proxy → Intercept → Save as new</div>
                 </div>
               </div>
               <div class="list-item">
                 <div class="list-item__text">
-                  <div class="list-item__title">Replay</div>
-                  <div class="list-item__sub">Proxy → HTTP history → Replay</div>
+                  <div class="list-item__title">Edit a history item</div>
+                  <div class="list-item__sub">Proxy → HTTP history → click row → Overwrite</div>
                 </div>
               </div>
               <div class="list-item">
                 <div class="list-item__text">
-                  <div class="list-item__title">Normalize output</div>
-                  <div class="list-item__sub">Proxy → Proxy settings</div>
+                  <div class="list-item__title">Replay + diff</div>
+                  <div class="list-item__sub">Proxy → HTTP history → Select → Replay → Diff</div>
                 </div>
               </div>
             </div>
@@ -121,21 +121,21 @@
         <section class="panel is-active subpanel" id="target-sitemap" data-main="target" data-subpanel="sitemap" aria-label="Target: Site map">
           <div class="card">
             <div class="card__title">Site map</div>
-            <div class="card__hint">Phase 1: build a host/path tree from captured traffic (Proxy history).</div>
+            <div class="card__hint">Phase 1.2: build a host/path tree from captured traffic (Proxy history).</div>
           </div>
         </section>
 
         <section class="panel subpanel" id="target-scope" data-main="target" data-subpanel="scope" aria-label="Target: Scope">
           <div class="card">
             <div class="card__title">Scope</div>
-            <div class="card__hint">Phase 1: define in-scope hosts/paths; Phase 2+: enforce scope filters globally.</div>
+            <div class="card__hint">Phase 1.2: define in-scope hosts/paths; later: enforce scope filters globally.</div>
           </div>
         </section>
 
         <section class="panel subpanel" id="target-issues" data-main="target" data-subpanel="issues" aria-label="Target: Issue definitions">
           <div class="card">
             <div class="card__title">Issue definitions</div>
-            <div class="card__hint">Phase 1: templates; later: auto-flag patterns and annotate history.</div>
+            <div class="card__hint">Later phase: templates; auto-flag patterns and annotate history.</div>
           </div>
         </section>
       </section>
@@ -193,7 +193,7 @@
                 </div>
 
                 <div class="card__hint">
-                  Tip: Headers are applied to <b>Send</b> and saved to history via <b>Save</b>.
+                  Tip: Headers are applied to <b>Send</b> and saved to history via <b>Save as new</b>.
                 </div>
               </div>
 
@@ -204,17 +204,27 @@
 
               <div class="row">
                 <button id="btn-send" class="btn" type="button">Send</button>
-                <button id="btn-save" class="btn secondary" type="button">Save</button>
+                <button id="btn-save" class="btn secondary" type="button">Save as new</button>
               </div>
 
-              <!-- BUG 1 actions: panel-safe reset/clear -->
               <div class="row row-actions">
                 <button id="btn-reset-request" class="btn secondary" type="button">Reset request</button>
                 <button id="btn-clear-response" class="btn secondary" type="button">Clear response</button>
               </div>
 
+              <div class="row">
+                <div id="edit-meta" class="meta">Draft (not linked to history)</div>
+                <button id="btn-overwrite" class="btn danger" type="button" disabled>Overwrite selected</button>
+              </div>
+
+              <div class="row">
+                <label class="label">Raw request preview</label>
+                <pre id="req-preview" class="code">—</pre>
+                <button id="btn-copy-preview" class="btn secondary" type="button">Copy preview</button>
+              </div>
+
               <div class="card__hint">
-                Current send is <b>direct</b> (browser fetch). Backend proxy comes in Phase 1.
+                Current send is <b>direct</b> (browser fetch). Backend proxy comes later.
               </div>
             </section>
 
@@ -328,14 +338,14 @@
         <section class="panel is-active subpanel" id="intruder-positions" data-main="intruder" data-subpanel="positions" aria-label="Intruder: Positions">
           <div class="card">
             <div class="card__title">Positions</div>
-            <div class="card__hint">Phase 1: define insertion points in a request template.</div>
+            <div class="card__hint">Later phase: define insertion points in a request template.</div>
           </div>
         </section>
 
         <section class="panel subpanel" id="intruder-payloads" data-main="intruder" data-subpanel="payloads" aria-label="Intruder: Payloads">
           <div class="card">
             <div class="card__title">Payloads</div>
-            <div class="card__hint">Phase 1: simple payload lists + sequential iteration.</div>
+            <div class="card__hint">Later phase: simple payload lists + sequential iteration.</div>
           </div>
         </section>
 
@@ -349,7 +359,7 @@
         <section class="panel subpanel" id="intruder-settings" data-main="intruder" data-subpanel="settings" aria-label="Intruder: Settings">
           <div class="card">
             <div class="card__title">Settings</div>
-            <div class="card__hint">Good home for FoxyProxy notes + CA/TLS guidance docs. Implementation comes later.</div>
+            <div class="card__hint">Good home for proxy notes + CA/TLS guidance docs. Implementation comes later.</div>
           </div>
         </section>
       </section>

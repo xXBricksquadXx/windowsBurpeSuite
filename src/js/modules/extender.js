@@ -30,6 +30,10 @@ function saveState() {
   } catch {}
 }
 
+function emitChanged() {
+  window.dispatchEvent(new CustomEvent("wbs:extender-changed"));
+}
+
 export function bindExtenderControls() {
   const pretty = byId("ext-pretty-json");
   const trim = byId("ext-trim-headers");
@@ -45,6 +49,7 @@ export function bindExtenderControls() {
     pretty.addEventListener("change", () => {
       state.prettyJson = pretty.checked;
       saveState();
+      emitChanged();
     });
   }
 
@@ -52,6 +57,7 @@ export function bindExtenderControls() {
     trim.addEventListener("change", () => {
       state.trimHeaders = trim.checked;
       saveState();
+      emitChanged();
     });
   }
 
@@ -59,6 +65,7 @@ export function bindExtenderControls() {
     lower.addEventListener("change", () => {
       state.lowercaseKeys = lower.checked;
       saveState();
+      emitChanged();
     });
   }
 
