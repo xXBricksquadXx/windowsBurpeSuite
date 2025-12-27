@@ -3,15 +3,30 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>windowsBurpeSuite</title>
+    <title>Windows Burpe Suite</title>
+
+    <!-- Future assets (drop these into src/assets/) -->
+    <link rel="icon" type="image/png" href="./assets/favicon.png" />
+    <meta name="theme-color" content="#0b0d12" />
+
     <link rel="stylesheet" href="./css/styles.css" />
   </head>
+
   <body>
     <header class="app-header">
       <div class="brand">
-        <div class="brand__title">windowsBurpeSuite</div>
-        <div class="brand__subtitle">Simple is beautiful — Interceptor / Repeater / Extender</div>
+        <img
+          class="brand__mark"
+          src="./assets/brand-theme.png"
+          alt=""
+          onerror="this.style.display='none'"
+        />
+        <div class="brand__text">
+          <div class="brand__title">wιɴdowѕ вυrpε ѕυιтε</div>
+          <div class="brand__subtitle">Simple is beautiful — Interceptor / Repeater / Extender</div>
+        </div>
       </div>
+
       <nav class="tabs" aria-label="Tools">
         <button class="tab is-active" data-tab="interceptor" type="button">Interceptor</button>
         <button class="tab" data-tab="repeater" type="button">Repeater</button>
@@ -20,10 +35,14 @@
     </header>
 
     <main class="app-main">
+      <!-- ========================= -->
+      <!-- Interceptor -->
+      <!-- ========================= -->
       <section class="panel is-active" id="panel-interceptor" aria-label="Interceptor">
         <div class="grid">
           <div class="card">
             <h2>Request</h2>
+
             <div class="row">
               <label>Method
                 <select id="req-method">
@@ -35,38 +54,66 @@
                   <option>OPTIONS</option>
                 </select>
               </label>
+
               <label class="grow">URL
                 <input id="req-url" type="url" spellcheck="false" placeholder="https://example.com/api" />
               </label>
             </div>
-            <label>Headers (one per line: Key: Value)
-              <textarea id="req-headers" rows="6" spellcheck="false" placeholder="Accept: application/json"></textarea>
-            </label>
-            <label>Body
-              <textarea id="req-body" rows="8" spellcheck="false" placeholder="{ }"></textarea>
-            </label>
+
+            <label>Headers</label>
+
+            <div class="row hdr-toolbar">
+              <button id="hdr-add" type="button" class="secondary">+ Header</button>
+              <button id="hdr-import" type="button">Import</button>
+              <button id="hdr-export" type="button">Export</button>
+              <button id="hdr-clear" type="button" class="danger">Clear</button>
+            </div>
+
+            <div id="hdr-rows" class="hdr-rows" aria-label="Header rows"></div>
+
+            <details id="hdr-io" class="disclosure">
+              <summary>Raw headers (import/export)</summary>
+              <textarea
+                id="hdr-raw"
+                rows="6"
+                spellcheck="false"
+                placeholder="Accept: application/json&#10;Authorization: Bearer ..."
+              ></textarea>
+              <div class="row right">
+                <button id="hdr-apply" type="button" class="secondary">Apply</button>
+                <button id="hdr-copy" type="button">Copy</button>
+              </div>
+            </details>
+
+            <label>Body</label>
+            <textarea id="req-body" rows="8" spellcheck="false" placeholder="{ }"></textarea>
+
             <div class="row right">
               <button id="btn-send" type="button">Send</button>
               <button id="btn-save" type="button" class="secondary">Save to Repeater</button>
             </div>
+
             <p class="note">
-              Note: browser requests are constrained by CORS. For "real Burp-like" behavior, add a local proxy backend later.
+              Note: browser requests are constrained by CORS. For “real Burp-like” behavior, add a local proxy backend later.
             </p>
           </div>
 
           <div class="card">
             <h2>Response</h2>
             <div id="res-meta" class="meta">—</div>
-            <label>Headers
-              <textarea id="res-headers" rows="8" readonly spellcheck="false"></textarea>
-            </label>
-            <label>Body
-              <textarea id="res-body" rows="12" readonly spellcheck="false"></textarea>
-            </label>
+
+            <label>Headers</label>
+            <textarea id="res-headers" rows="8" readonly spellcheck="false"></textarea>
+
+            <label>Body</label>
+            <textarea id="res-body" rows="12" readonly spellcheck="false"></textarea>
           </div>
         </div>
       </section>
 
+      <!-- ========================= -->
+      <!-- Repeater -->
+      <!-- ========================= -->
       <section class="panel" id="panel-repeater" aria-label="Repeater">
         <div class="grid">
           <div class="card">
@@ -80,18 +127,34 @@
 
           <div class="card">
             <h2>Replay</h2>
-            <div class="row">
+
+            <div class="row spread">
               <div id="replay-title" class="meta">Select a request…</div>
+              <div class="segmented" aria-label="Replay view">
+                <button id="view-raw" type="button" class="seg secondary">Raw</button>
+                <button id="view-diff" type="button" class="seg">Diff</button>
+              </div>
               <button id="btn-replay" type="button" disabled>Replay</button>
             </div>
-            <label>Response
+
+            <div id="replay-raw-wrap">
+              <label>Response</label>
               <textarea id="replay-out" rows="18" readonly spellcheck="false"></textarea>
-            </label>
+            </div>
+
+            <div id="replay-diff-wrap" class="is-hidden">
+              <div class="meta">Diff (previous ↔ current)</div>
+              <pre id="replay-diff" class="code diff" aria-live="polite"></pre>
+            </div>
+
             <p class="note">Tip: Use Extender hooks to format JSON or normalize headers.</p>
           </div>
         </div>
       </section>
 
+      <!-- ========================= -->
+      <!-- Extender -->
+      <!-- ========================= -->
       <section class="panel" id="panel-extender" aria-label="Extender">
         <div class="card">
           <h2>Extender (Hook system)</h2>
