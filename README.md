@@ -1,39 +1,110 @@
 # windowsBurpeSuite
 
-A minimal, browser-based “Burp-like” toolbox with a clean UI:
+A minimal, browser-based “Burp-like” toolbox for **manual request crafting + replay + diff**.
 
-- **Dashboard** (target overview + quick actions)
-- **Target** (site map, scope, issue definitions)
-- **Proxy** (intercept, HTTP history, WebSockets history, proxy settings)
-- **Intruder** (positions, payloads, resource pool, settings)
+This is **not** a system proxy / MITM tool. It is a lightweight UI that sends requests via the browser (`fetch()`), saves them to local history, and supports replay + diff.
 
-This stays **Vanilla HTML/CSS/JS (ES6 modules)**: simple is beautiful.
+## Current status
 
-> Note: This repo includes a **companion backend scaffold** that can run an HTTPS UI and a basic forward proxy listener.
-> It is *not* a full MITM intercepting proxy yet (CONNECT tunnels are pass-through). The TLS/CA docs are included for the next step.
+**Phase 0 (current):**
+
+- Proxy → **Intercept**: build a request (method / URL / headers / body), send, view response
+- Proxy → **HTTP history**: save requests, select one, replay it
+- **Replay**: Raw / Diff toggle
+- **Headers editor**: row-based editor + raw import/export
+- **Proxy settings** toggles: pretty-print JSON, lowercase header keys, trim response headers
+- `scripts/dev-echo.py`: local echo target for sanity tests
+
+**Phase 1 (next):**
+
+- Editing/crafting flow between History ↔ Intercept (Edit / Save as new / Overwrite)
+- Better request presets and templates
+- Target scaffolding (scope list + sitemap placeholder)
+- Optional: GitLab Pages deploy
 
 ## Run locally
 
-### Option A: Static UI (no backend)
-Open `src/index.html` directly, or serve `src/` with any static server.
+### 1) Serve the UI (static)
 
-Examples:
-- Python: `python -m http.server 5173` (run inside `src/`)
-- Node: `npx serve .` (run inside `src/`)
+From repo root:
 
-### Option B: Companion backend (recommended for “Burp-like” flow)
-1) Generate/trust local certs (see `docs/tls-ca.md`)
-2) Run backend:
-- `cd backend`
-- `node server.mjs`
+```powershell
+python -m http.server 5173 -d .\src
+Start-Process "http://localhost:5173/"
+```
 
-Backend defaults:
-- HTTPS UI: `https://localhost:8443`
-- Proxy listener: `http://127.0.0.1:8080`
+### 2) Run local echo target (recommended)
 
-## FoxyProxy / Firefox setup
-See `docs/foxyproxy.md`.
+From repo root:
 
-## GitLab deploy (static UI)
-This repo includes a minimal GitLab Pages pipeline that publishes `src/` as static content.
-See `.gitlab-ci.yml`.
+```powershell
+python .\scripts\dev-echo.py
+```
+
+## Phase 0 sanity tests
+
+### A) GET
+
+Proxy → Intercept
+
+- Method: `GET`
+- URL: `http://127.0.0.1:8787/hello`
+- Send
+
+### B) POST JSON
+
+Proxy → Intercept
+
+- Method: `POST`
+- URL: `http://127.0.0.1:8787/api`
+- Headers:
+
+  - `Accept: application/json`
+  - `Content-Type: application/json`
+
+- Body:
+
+```json
+{ "ping": "pong" }
+```
+
+- Send
+
+### C) Save + Replay + Diff
+
+- Proxy → Intercept → **Save**
+- Proxy → HTTP history → **Select** → **Replay**
+- Toggle **Raw / Diff** to confirm diffs render
+
+## Repo layout
+
+```
+windowsBurpeSuite/
+  src/
+    index.html
+    css/styles.css
+    js/
+      app.js
+      ui.js
+      modules/
+        interceptor.js
+        repeater.js
+        diff.js
+        extender.js
+        headersEditor.js
+        storage.js
+  scripts/
+    dev-echo.py
+  docs/
+    TEST_UI.md
+```
+
+## Browser limitations (important)
+
+Because this phase runs entirely in the browser:
+
+- **CORS applies** (you can only call targets that allow it)
+- some headers are browser-managed (can’t be manually set)
+- no socket-level proxying / CONNECT tunneling
+
+If you need to hit non-CORS targets, that becomes a later phase (optional lightweight companion backend).
