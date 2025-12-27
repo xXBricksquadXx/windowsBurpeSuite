@@ -3,7 +3,8 @@ pages:
   image: alpine:latest
   script:
     - mkdir -p public
-    - cp -r src/* public/
+    - cp -r src/. public/
+    - test -e public/index.html
   artifacts:
     paths:
       - public
