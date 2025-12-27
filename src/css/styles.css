@@ -217,3 +217,24 @@ textarea.textarea { resize: vertical; min-height: 120px; }
 .diff .diff-line{ font-family: var(--mono); }
 .diff .add{ color:#22c55e; }
 .diff .del{ color:#ef4444; }
+
+/* Intercept: action row (Reset/Clear response) */
+.row.row-actions {
+  flex-direction: row;
+  gap: 10px;
+}
+.row.row-actions .btn {
+  flex: 1;
+}
+
+/* HTTP history list: clickable rows + selected highlight */
+.list-item.is-clickable {
+  cursor: pointer;
+}
+.list-item.is-clickable:hover {
+  filter: brightness(1.04);
+}
+.list-item.is-selected {
+  border-color: rgba(139, 92, 246, 0.45);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.06);
+}

@@ -1,15 +1,27 @@
 import { loadSaved, saveSaved } from "./storage.js";
 import { diffText, renderDiff } from "./diff.js";
 import { maybePrettyJson, maybeLowercaseHeaderKeys } from "./extender.js";
+import { navigateTo } from "../ui.js";
+import { loadRequestToForm, focusUrlField } from "./interceptor.js";
 
 function byId(id) {
   return document.getElementById(id);
 }
 
 let selectedId = null;
+const lastBodyById = new Map();
 
 export function setSelectedId(id) {
   selectedId = id;
+  syncSelectedStyles();
+}
+
+function syncSelectedStyles() {
+  const list = byId("saved-list");
+  if (!list) return;
+  list.querySelectorAll(".list-item").forEach((el) => {
+    el.classList.toggle("is-selected", el.dataset.id === selectedId);
+  });
 }
 
 function formatTs(ts) {
@@ -20,9 +32,14 @@ function formatTs(ts) {
   }
 }
 
-function makeListItem(item, { onSelect }) {
+function setReplayTitle(item) {
+  const el = byId("replay-title");
+  if (el) el.textContent = `Selected: ${item.method} ${item.url}`;
+}
+
+function makeListItem(item, { onSelect } = {}) {
   const wrap = document.createElement("div");
-  wrap.className = "list-item";
+  wrap.className = "list-item is-clickable";
   wrap.dataset.id = item.id;
 
   const text = document.createElement("div");
@@ -46,10 +63,28 @@ function makeListItem(item, { onSelect }) {
   btn.type = "button";
   btn.textContent = "Select";
 
-  btn.addEventListener("click", () => {
+  // Select button: keep current behavior (select updates right panel), and also prime Intercept form.
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation(); // don't trigger row-click edit
     selectedId = item.id;
     if (onSelect) onSelect(item.id);
-    byId("replay-title").textContent = `Selected: ${item.method} ${item.url}`;
+    setReplayTitle(item);
+    syncSelectedStyles();
+
+    // Prime Intercept with the selected request (no nav)
+    loadRequestToForm(item);
+  });
+
+  // Row click (mouse-select to edit): select + navigate to Intercept + focus URL
+  wrap.addEventListener("click", () => {
+    selectedId = item.id;
+    if (onSelect) onSelect(item.id);
+    setReplayTitle(item);
+    syncSelectedStyles();
+
+    loadRequestToForm(item);
+    navigateTo("proxy", "intercept");
+    focusUrlField({ select: true });
   });
 
   wrap.appendChild(text);
@@ -72,15 +107,26 @@ export function renderSavedList({ onSelect } = {}) {
   }
 
   items.forEach((it) => list.appendChild(makeListItem(it, { onSelect })));
+
+  // If nothing is selected, keep selection null; otherwise re-apply highlight.
+  syncSelectedStyles();
 }
 
 export function clearAllSaved() {
   saveSaved([]);
   selectedId = null;
+  lastBodyById.clear();
 
-  byId("replay-title").textContent = "Select a saved request";
-  byId("replay-out").textContent = "—";
-  byId("replay-diff").textContent = "—";
+  const t = byId("replay-title");
+  if (t) t.textContent = "Select a saved request";
+
+  const out = byId("replay-out");
+  if (out) out.textContent = "—";
+
+  const diffEl = byId("replay-diff");
+  if (diffEl) diffEl.innerHTML = "—";
+
+  syncSelectedStyles();
 }
 
 async function fetchReplay(item, cfg) {
@@ -115,7 +161,7 @@ export async function replaySelected(cfg) {
 
   byId("replay-title").textContent = `Replaying: ${item.method} ${item.url}`;
 
-  const prev = out.textContent === "—" ? "" : out.textContent;
+  const prev = lastBodyById.get(selectedId) || "";
 
   const res = await fetchReplay(item, cfg);
   byId("replay-title").textContent = `Replay: ${res.meta}`;
@@ -124,4 +170,6 @@ export async function replaySelected(cfg) {
 
   const d = diffText(prev, res.body || "");
   diffEl.innerHTML = renderDiff(d);
+
+  lastBodyById.set(selectedId, res.body || "");
 }

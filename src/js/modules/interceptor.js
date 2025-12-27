@@ -14,6 +14,75 @@ function setText(id, text) {
   if (el) el.textContent = text;
 }
 
+function hideHeaderIO() {
+  const io = byId("hdr-io");
+  if (io) io.classList.add("is-hidden");
+}
+
+export function clearResponsePanel() {
+  setText("res-meta", "—");
+  setText("res-headers", "—");
+  setText("res-body", "—");
+}
+
+export function focusUrlField({ select = true } = {}) {
+  const el = byId("req-url");
+  if (!el) return;
+  el.focus();
+  if (select && typeof el.select === "function") el.select();
+}
+
+export function resetRequestForm() {
+  const method = byId("req-method");
+  const url = byId("req-url");
+  const body = byId("req-body");
+
+  if (method) method.value = "GET";
+  if (url) url.value = "";
+  if (body) body.value = "";
+
+  // Reset headers to a sensible default.
+  // This intentionally overwrites persisted headers (explicit action).
+  const defaultHeaders = { Accept: "application/json" };
+  window.__wbsHeaders?.set?.(defaultHeaders);
+
+  hideHeaderIO();
+}
+
+export function loadRequestToForm(item) {
+  if (!item) return;
+
+  const method = byId("req-method");
+  const url = byId("req-url");
+  const body = byId("req-body");
+
+  if (method) method.value = String(item.method || "GET").toUpperCase();
+  if (url) url.value = String(item.url || "");
+  if (body) body.value = String(item.body || "");
+
+  window.__wbsHeaders?.set?.(item.headers || {});
+  hideHeaderIO();
+}
+
+function bindInterceptorUtilities() {
+  const btnReset = byId("btn-reset-request");
+  const btnClearRes = byId("btn-clear-response");
+
+  // Avoid double-binding if app hot-reloads or re-imports.
+  if (btnReset && !btnReset.dataset.bound) {
+    btnReset.dataset.bound = "1";
+    btnReset.addEventListener("click", () => resetRequestForm());
+  }
+
+  if (btnClearRes && !btnClearRes.dataset.bound) {
+    btnClearRes.dataset.bound = "1";
+    btnClearRes.addEventListener("click", () => clearResponsePanel());
+  }
+}
+
+// Bind immediately (script loads at end of body).
+bindInterceptorUtilities();
+
 export async function sendFromForm(cfg) {
   const method = byId("req-method").value.trim().toUpperCase() || "GET";
   const url = byId("req-url").value.trim();
@@ -61,7 +130,6 @@ export async function sendFromForm(cfg) {
     setText("res-meta", "Request failed (CORS / network)");
     setText("res-body", msg);
 
-    // Helpful hint for local dev
     console.warn(
       "Fetch failed. If this is CORS, run: python .\\scripts\\dev-echo.py",
       err

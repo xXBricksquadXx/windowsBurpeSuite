@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="dark" />
-    <title>windowsBurpeSuite</title>
+    <title>Windows Burpe Suite</title>
 
     <link rel="icon" href="./assets/favicon.png" />
     <link rel="stylesheet" href="./css/styles.css" />
@@ -21,7 +21,9 @@
         />
         <div class="brand__text">
           <div class="brand__title">wιɴdowѕ вυrpε ѕυιтε</div>
-          <div class="brand__subtitle">Simple is beautiful — Dashboard / Target / Proxy / Intruder</div>
+          <div class="brand__subtitle">
+            Simple is beautiful — Dashboard / Target / Proxy / Intruder
+          </div>
         </div>
       </div>
 
@@ -179,7 +181,7 @@
                   <button id="hdr-add" class="btn secondary" type="button">+ Add header</button>
                   <button id="hdr-import" class="btn secondary" type="button">Import raw</button>
                   <button id="hdr-export" class="btn secondary" type="button">Export raw</button>
-                  <button id="hdr-clear" class="btn danger" type="button">Clear</button>
+                  <button id="hdr-clear" class="btn danger" type="button">Clear headers</button>
                 </div>
 
                 <div id="hdr-io" class="hdr-io is-hidden">
@@ -203,6 +205,12 @@
               <div class="row">
                 <button id="btn-send" class="btn" type="button">Send</button>
                 <button id="btn-save" class="btn secondary" type="button">Save</button>
+              </div>
+
+              <!-- BUG 1 actions: panel-safe reset/clear -->
+              <div class="row row-actions">
+                <button id="btn-reset-request" class="btn secondary" type="button">Reset request</button>
+                <button id="btn-clear-response" class="btn secondary" type="button">Clear response</button>
               </div>
 
               <div class="card__hint">
