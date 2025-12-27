@@ -1,14 +1,12 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Windows Burpe Suite</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>windowsBurpeSuite</title>
 
-    <!-- Future assets (drop these into src/assets/) -->
-    <link rel="icon" type="image/png" href="./assets/favicon.png" />
-    <meta name="theme-color" content="#0b0d12" />
-
+    <link rel="icon" href="./assets/favicon.png" />
     <link rel="stylesheet" href="./css/styles.css" />
   </head>
 
@@ -23,159 +21,331 @@
         />
         <div class="brand__text">
           <div class="brand__title">wιɴdowѕ вυrpε ѕυιтε</div>
-          <div class="brand__subtitle">Simple is beautiful — Interceptor / Repeater / Extender</div>
+          <div class="brand__subtitle">Simple is beautiful — Dashboard / Target / Proxy / Intruder</div>
         </div>
       </div>
 
-      <nav class="tabs" aria-label="Tools">
-        <button class="tab is-active" data-tab="interceptor" type="button">Interceptor</button>
-        <button class="tab" data-tab="repeater" type="button">Repeater</button>
-        <button class="tab" data-tab="extender" type="button">Extender</button>
+      <nav class="tabs" aria-label="Workspace">
+        <button class="tab" data-main-tab="dashboard" type="button">Dashboard</button>
+        <button class="tab" data-main-tab="target" type="button">Target</button>
+        <button class="tab is-active" data-main-tab="proxy" type="button">Proxy</button>
+        <button class="tab" data-main-tab="intruder" type="button">Intruder</button>
       </nav>
     </header>
 
     <main class="app-main">
       <!-- ========================= -->
-      <!-- Interceptor -->
+      <!-- Dashboard -->
       <!-- ========================= -->
-      <section class="panel is-active" id="panel-interceptor" aria-label="Interceptor">
+      <section class="panel" id="panel-dashboard" data-main-panel="dashboard" aria-label="Dashboard">
+        <div class="card">
+          <div class="card__title">Project Dashboard</div>
+          <div class="card__hint">Overview of the current project + phase progress.</div>
+        </div>
+
         <div class="grid">
           <div class="card">
-            <h2>Request</h2>
+            <div class="card__title">Phase status</div>
+            <div class="list">
+              <div class="list-item">
+                <div class="list-item__text">
+                  <div class="list-item__title">Current</div>
+                  <div class="list-item__sub">Phase 0 — UI scaffold</div>
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="list-item__text">
+                  <div class="list-item__title">Next</div>
+                  <div class="list-item__sub">Phase 1 — request builder + history + tooling</div>
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="list-item__text">
+                  <div class="list-item__title">Later</div>
+                  <div class="list-item__sub">Phase 2 — HTTP proxy + CONNECT tunnel</div>
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="list-item__text">
+                  <div class="list-item__title">Later</div>
+                  <div class="list-item__sub">Phase 3 — TLS CA + MITM (scoped)</div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-            <div class="row">
-              <label>Method
+          <div class="card">
+            <div class="card__title">Quick actions</div>
+            <div class="list">
+              <div class="list-item">
+                <div class="list-item__text">
+                  <div class="list-item__title">Send request</div>
+                  <div class="list-item__sub">Proxy → Intercept → Send</div>
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="list-item__text">
+                  <div class="list-item__title">Save to history</div>
+                  <div class="list-item__sub">Proxy → Intercept → Save</div>
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="list-item__text">
+                  <div class="list-item__title">Replay</div>
+                  <div class="list-item__sub">Proxy → HTTP history → Replay</div>
+                </div>
+              </div>
+              <div class="list-item">
+                <div class="list-item__text">
+                  <div class="list-item__title">Normalize output</div>
+                  <div class="list-item__sub">Proxy → Proxy settings</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================= -->
+      <!-- Target -->
+      <!-- ========================= -->
+      <section class="panel" id="panel-target" data-main-panel="target" aria-label="Target">
+        <nav class="subtabs" aria-label="Target subtabs">
+          <button class="subtab is-active" data-main="target" data-subtab="sitemap" type="button">Site map</button>
+          <button class="subtab" data-main="target" data-subtab="scope" type="button">Scope</button>
+          <button class="subtab" data-main="target" data-subtab="issues" type="button">Issue definitions</button>
+        </nav>
+
+        <section class="panel is-active subpanel" id="target-sitemap" data-main="target" data-subpanel="sitemap" aria-label="Target: Site map">
+          <div class="card">
+            <div class="card__title">Site map</div>
+            <div class="card__hint">Phase 1: build a host/path tree from captured traffic (Proxy history).</div>
+          </div>
+        </section>
+
+        <section class="panel subpanel" id="target-scope" data-main="target" data-subpanel="scope" aria-label="Target: Scope">
+          <div class="card">
+            <div class="card__title">Scope</div>
+            <div class="card__hint">Phase 1: define in-scope hosts/paths; Phase 2+: enforce scope filters globally.</div>
+          </div>
+        </section>
+
+        <section class="panel subpanel" id="target-issues" data-main="target" data-subpanel="issues" aria-label="Target: Issue definitions">
+          <div class="card">
+            <div class="card__title">Issue definitions</div>
+            <div class="card__hint">Phase 1: templates; later: auto-flag patterns and annotate history.</div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ========================= -->
+      <!-- Proxy -->
+      <!-- ========================= -->
+      <section class="panel is-active" id="panel-proxy" data-main-panel="proxy" aria-label="Proxy">
+        <nav class="subtabs" aria-label="Proxy subtabs">
+          <button class="subtab is-active" data-main="proxy" data-subtab="intercept" type="button">Intercept</button>
+          <button class="subtab" data-main="proxy" data-subtab="http" type="button">HTTP history</button>
+          <button class="subtab" data-main="proxy" data-subtab="ws" type="button">WebSockets history</button>
+          <button class="subtab" data-main="proxy" data-subtab="settings" type="button">Proxy settings</button>
+        </nav>
+
+        <!-- Proxy: Intercept -->
+        <section class="panel is-active subpanel" id="panel-interceptor" data-main="proxy" data-subpanel="intercept" aria-label="Proxy: Intercept">
+          <div class="grid">
+            <section class="card">
+              <div class="card__title">Request</div>
+
+              <div class="row">
+                <label class="label">Method</label>
                 <select id="req-method">
                   <option>GET</option>
                   <option>POST</option>
                   <option>PUT</option>
                   <option>PATCH</option>
                   <option>DELETE</option>
-                  <option>OPTIONS</option>
                 </select>
-              </label>
-
-              <label class="grow">URL
-                <input id="req-url" type="url" spellcheck="false" placeholder="https://example.com/api" />
-              </label>
-            </div>
-
-            <label>Headers</label>
-
-            <div class="row hdr-toolbar">
-              <button id="hdr-add" type="button" class="secondary">+ Header</button>
-              <button id="hdr-import" type="button">Import</button>
-              <button id="hdr-export" type="button">Export</button>
-              <button id="hdr-clear" type="button" class="danger">Clear</button>
-            </div>
-
-            <div id="hdr-rows" class="hdr-rows" aria-label="Header rows"></div>
-
-            <details id="hdr-io" class="disclosure">
-              <summary>Raw headers (import/export)</summary>
-              <textarea
-                id="hdr-raw"
-                rows="6"
-                spellcheck="false"
-                placeholder="Accept: application/json&#10;Authorization: Bearer ..."
-              ></textarea>
-              <div class="row right">
-                <button id="hdr-apply" type="button" class="secondary">Apply</button>
-                <button id="hdr-copy" type="button">Copy</button>
               </div>
-            </details>
 
-            <label>Body</label>
-            <textarea id="req-body" rows="8" spellcheck="false" placeholder="{ }"></textarea>
+              <div class="row">
+                <label class="label">URL</label>
+                <input id="req-url" placeholder="https://example.com/api" />
+              </div>
 
-            <div class="row right">
-              <button id="btn-send" type="button">Send</button>
-              <button id="btn-save" type="button" class="secondary">Save to Repeater</button>
-            </div>
+              <div class="row">
+                <label class="label">Headers</label>
+                <div id="hdr-rows" class="hdr-rows"></div>
 
-            <p class="note">
-              Note: browser requests are constrained by CORS. For “real Burp-like” behavior, add a local proxy backend later.
-            </p>
+                <div class="hdr-actions">
+                  <button id="hdr-add" class="btn secondary" type="button">+ Add header</button>
+                  <button id="hdr-import" class="btn secondary" type="button">Import raw</button>
+                  <button id="hdr-export" class="btn secondary" type="button">Export raw</button>
+                  <button id="hdr-clear" class="btn danger" type="button">Clear</button>
+                </div>
+
+                <div id="hdr-io" class="hdr-io is-hidden">
+                  <textarea id="hdr-raw" class="textarea" rows="6" placeholder="Header: value&#10;Another: value"></textarea>
+                  <div class="hdr-actions">
+                    <button id="hdr-apply" class="btn" type="button">Apply</button>
+                    <button id="hdr-copy" class="btn secondary" type="button">Copy</button>
+                  </div>
+                </div>
+
+                <div class="card__hint">
+                  Tip: Headers are applied to <b>Send</b> and saved to history via <b>Save</b>.
+                </div>
+              </div>
+
+              <div class="row">
+                <label class="label">Body</label>
+                <textarea id="req-body" class="textarea" rows="12" placeholder='{"hello":"world"}'></textarea>
+              </div>
+
+              <div class="row">
+                <button id="btn-send" class="btn" type="button">Send</button>
+                <button id="btn-save" class="btn secondary" type="button">Save</button>
+              </div>
+
+              <div class="card__hint">
+                Current send is <b>direct</b> (browser fetch). Backend proxy comes in Phase 1.
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card__title">Response</div>
+              <div class="row">
+                <div id="res-meta" class="meta">—</div>
+              </div>
+              <div class="row">
+                <label class="label">Headers</label>
+                <pre id="res-headers" class="code">—</pre>
+              </div>
+              <div class="row">
+                <label class="label">Body</label>
+                <pre id="res-body" class="code">—</pre>
+              </div>
+            </section>
           </div>
+        </section>
 
-          <div class="card">
-            <h2>Response</h2>
-            <div id="res-meta" class="meta">—</div>
+        <!-- Proxy: HTTP history -->
+        <section class="panel subpanel" id="panel-repeater" data-main="proxy" data-subpanel="http" aria-label="Proxy: HTTP history">
+          <div class="grid">
+            <section class="card">
+              <div class="card__title">HTTP history</div>
+              <div class="row">
+                <button id="btn-refresh" class="btn secondary" type="button">Refresh</button>
+                <button id="btn-clear" class="btn danger" type="button">Clear All</button>
+              </div>
+              <div id="saved-list" class="list"></div>
+            </section>
 
-            <label>Headers</label>
-            <textarea id="res-headers" rows="8" readonly spellcheck="false"></textarea>
+            <section class="card">
+              <div class="card__title">Replay</div>
+              <div class="row">
+                <div id="replay-title" class="meta">Select a saved request</div>
+              </div>
 
-            <label>Body</label>
-            <textarea id="res-body" rows="12" readonly spellcheck="false"></textarea>
+              <div class="segmented">
+                <button id="view-raw" class="seg btn secondary" type="button">Raw</button>
+                <button id="view-diff" class="seg btn secondary" type="button">Diff</button>
+              </div>
+
+              <div class="row">
+                <button id="btn-replay" class="btn" type="button">Replay</button>
+              </div>
+
+              <div id="replay-raw-wrap">
+                <pre id="replay-out" class="code">—</pre>
+              </div>
+
+              <div id="replay-diff-wrap" class="is-hidden">
+                <div id="replay-diff" class="code diff">—</div>
+              </div>
+            </section>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- ========================= -->
-      <!-- Repeater -->
-      <!-- ========================= -->
-      <section class="panel" id="panel-repeater" aria-label="Repeater">
-        <div class="grid">
+        <!-- Proxy: WebSockets history -->
+        <section class="panel subpanel" id="panel-ws" data-main="proxy" data-subpanel="ws" aria-label="Proxy: WebSockets history">
           <div class="card">
-            <h2>Saved Requests</h2>
+            <div class="card__title">WebSockets history</div>
+            <div class="card__hint">Later phase: capture WS upgrades + frames via the proxy layer.</div>
+          </div>
+        </section>
+
+        <!-- Proxy: Settings -->
+        <section class="panel subpanel" id="panel-extender" data-main="proxy" data-subpanel="settings" aria-label="Proxy: Settings">
+          <div class="card">
+            <div class="card__title">Proxy settings</div>
+
             <div class="row">
-              <button id="btn-refresh" type="button" class="secondary">Refresh</button>
-              <button id="btn-clear" type="button" class="danger">Clear All</button>
+              <label class="check">
+                <input type="checkbox" id="ext-pretty-json" />
+                <span>Pretty-print JSON responses</span>
+              </label>
             </div>
-            <div id="saved-list" class="list"></div>
+
+            <div class="row">
+              <label class="check">
+                <input type="checkbox" id="ext-trim-headers" checked />
+                <span>Trim response headers display</span>
+              </label>
+            </div>
+
+            <div class="row">
+              <label class="check">
+                <input type="checkbox" id="ext-lowercase-keys" />
+                <span>Lowercase header keys on send</span>
+              </label>
+            </div>
+
+            <div class="card__hint">
+              These are client-side transforms for now. Backend proxy settings land later.
+            </div>
           </div>
-
-          <div class="card">
-            <h2>Replay</h2>
-
-            <div class="row spread">
-              <div id="replay-title" class="meta">Select a request…</div>
-              <div class="segmented" aria-label="Replay view">
-                <button id="view-raw" type="button" class="seg secondary">Raw</button>
-                <button id="view-diff" type="button" class="seg">Diff</button>
-              </div>
-              <button id="btn-replay" type="button" disabled>Replay</button>
-            </div>
-
-            <div id="replay-raw-wrap">
-              <label>Response</label>
-              <textarea id="replay-out" rows="18" readonly spellcheck="false"></textarea>
-            </div>
-
-            <div id="replay-diff-wrap" class="is-hidden">
-              <div class="meta">Diff (previous ↔ current)</div>
-              <pre id="replay-diff" class="code diff" aria-live="polite"></pre>
-            </div>
-
-            <p class="note">Tip: Use Extender hooks to format JSON or normalize headers.</p>
-          </div>
-        </div>
+        </section>
       </section>
 
       <!-- ========================= -->
-      <!-- Extender -->
+      <!-- Intruder -->
       <!-- ========================= -->
-      <section class="panel" id="panel-extender" aria-label="Extender">
-        <div class="card">
-          <h2>Extender (Hook system)</h2>
-          <p class="note">Toggle small transforms that run before send / after receive.</p>
-          <div class="checks">
-            <label><input id="ext-pretty-json" type="checkbox" /> Pretty-print JSON response</label>
-            <label><input id="ext-trim-headers" type="checkbox" checked /> Trim header whitespace</label>
-            <label><input id="ext-lowercase-keys" type="checkbox" /> Lowercase header keys</label>
+      <section class="panel" id="panel-intruder" data-main-panel="intruder" aria-label="Intruder">
+        <nav class="subtabs" aria-label="Intruder subtabs">
+          <button class="subtab is-active" data-main="intruder" data-subtab="positions" type="button">Positions</button>
+          <button class="subtab" data-main="intruder" data-subtab="payloads" type="button">Payloads</button>
+          <button class="subtab" data-main="intruder" data-subtab="pool" type="button">Resource pool</button>
+          <button class="subtab" data-main="intruder" data-subtab="settings" type="button">Settings</button>
+        </nav>
+
+        <section class="panel is-active subpanel" id="intruder-positions" data-main="intruder" data-subpanel="positions" aria-label="Intruder: Positions">
+          <div class="card">
+            <div class="card__title">Positions</div>
+            <div class="card__hint">Phase 1: define insertion points in a request template.</div>
           </div>
-          <h3>Notes</h3>
-          <ul>
-            <li>These hooks are intentionally tiny; the goal is clarity over complexity.</li>
-            <li>Later: add a plugin registry and load extensions dynamically.</li>
-          </ul>
-        </div>
+        </section>
+
+        <section class="panel subpanel" id="intruder-payloads" data-main="intruder" data-subpanel="payloads" aria-label="Intruder: Payloads">
+          <div class="card">
+            <div class="card__title">Payloads</div>
+            <div class="card__hint">Phase 1: simple payload lists + sequential iteration.</div>
+          </div>
+        </section>
+
+        <section class="panel subpanel" id="intruder-pool" data-main="intruder" data-subpanel="pool" aria-label="Intruder: Resource pool">
+          <div class="card">
+            <div class="card__title">Resource pool</div>
+            <div class="card__hint">Later: concurrency limits, delays, retries, throttling.</div>
+          </div>
+        </section>
+
+        <section class="panel subpanel" id="intruder-settings" data-main="intruder" data-subpanel="settings" aria-label="Intruder: Settings">
+          <div class="card">
+            <div class="card__title">Settings</div>
+            <div class="card__hint">Good home for FoxyProxy notes + CA/TLS guidance docs. Implementation comes later.</div>
+          </div>
+        </section>
       </section>
     </main>
-
-    <footer class="app-footer">
-      <div class="meta">MIT Licensed • Built with Vanilla ES6 modules</div>
-    </footer>
 
     <script type="module" src="./js/app.js"></script>
   </body>

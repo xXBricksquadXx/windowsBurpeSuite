@@ -2,177 +2,154 @@ function byId(id) {
   return document.getElementById(id);
 }
 
-const els = {
-  rows: null,
-  add: null,
-  imp: null,
-  exp: null,
-  clr: null,
-  io: null,
-  raw: null,
-  apply: null,
-  copy: null,
-};
-
-function escapeForClipboard(s) {
-  return String(s ?? "");
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  Object.entries(attrs).forEach(([k, v]) => {
+    if (k === "class") node.className = v;
+    else if (k.startsWith("on") && typeof v === "function")
+      node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v);
+  });
+  children.forEach((c) =>
+    node.appendChild(typeof c === "string" ? document.createTextNode(c) : c)
+  );
+  return node;
 }
 
-function normalizeLines(text) {
-  return String(text || "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n");
-}
-
-function parseRawHeaders(text) {
-  const headers = {};
-  const lines = normalizeLines(text).split("\n");
-  for (const raw of lines) {
-    const line = raw.trimEnd();
-    if (!line.trim()) continue;
-    const idx = line.indexOf(":");
-    if (idx <= 0) continue;
-    const k = line.slice(0, idx).trim();
-    const v = line.slice(idx + 1).trim();
-    if (k) headers[k] = v;
-  }
-  return headers;
-}
-
-function headersToText(obj) {
-  return Object.entries(obj || {})
-    .map(([k, v]) => `${k}: ${v}`)
-    .join("\n");
-}
-
-function readRowsToHeaders() {
+function normalizeHeadersObj(h) {
   const out = {};
-  const rows = els.rows.querySelectorAll(".hdr-row");
-  for (const row of rows) {
-    const k = row.querySelector(".hdr-key")?.value?.trim() ?? "";
-    const v = row.querySelector(".hdr-val")?.value ?? "";
-    if (!k) continue;
-    out[k] = String(v).trim();
+  for (const [k, v] of Object.entries(h || {})) {
+    const key = String(k).trim();
+    if (!key) continue;
+    out[key] = String(v ?? "");
   }
   return out;
 }
 
-function addRow(key = "", value = "") {
-  const row = document.createElement("div");
-  row.className = "hdr-row";
+function parseRawHeaders(raw) {
+  const out = {};
+  const lines = String(raw ?? "").split(/\r?\n/);
+  for (const line of lines) {
+    const idx = line.indexOf(":");
+    if (idx <= 0) continue;
+    const k = line.slice(0, idx).trim();
+    const v = line.slice(idx + 1).trim();
+    if (!k) continue;
+    out[k] = v;
+  }
+  return out;
+}
 
-  const keyInput = document.createElement("input");
-  keyInput.className = "hdr-key";
-  keyInput.type = "text";
-  keyInput.spellcheck = false;
-  keyInput.placeholder = "Header";
-  keyInput.value = key;
+function toRawHeaders(h) {
+  return Object.entries(h || {})
+    .map(([k, v]) => `${k}: ${v}`)
+    .join("\n");
+}
 
-  const valInput = document.createElement("input");
-  valInput.className = "hdr-val";
-  valInput.type = "text";
-  valInput.spellcheck = false;
-  valInput.placeholder = "Value";
-  valInput.value = value;
+export function initHeaderEditor({ defaults = {} } = {}) {
+  const rowsWrap = byId("hdr-rows");
+  const btnAdd = byId("hdr-add");
+  const btnImport = byId("hdr-import");
+  const btnExport = byId("hdr-export");
+  const btnClear = byId("hdr-clear");
 
-  const delBtn = document.createElement("button");
-  delBtn.type = "button";
-  delBtn.className = "hdr-del danger";
-  delBtn.title = "Remove header";
-  delBtn.textContent = "×";
-  delBtn.addEventListener("click", () => {
-    row.remove();
-    ensureAtLeastOneRow();
+  const ioWrap = byId("hdr-io");
+  const rawTa = byId("hdr-raw");
+  const btnApply = byId("hdr-apply");
+  const btnCopy = byId("hdr-copy");
+
+  const state = {
+    headers: normalizeHeadersObj(defaults),
+  };
+
+  function qaRows() {
+    return Array.from(rowsWrap.querySelectorAll(".hdr-row"));
+  }
+
+  function makeRow(k = "", v = "") {
+    const key = el("input", { placeholder: "Header", value: k });
+    const val = el("input", { placeholder: "Value", value: v });
+    const del = el("button", { class: "btn danger", type: "button" }, ["×"]);
+
+    const row = el("div", { class: "hdr-row" }, [key, val, del]);
+
+    function syncFromInputs() {
+      const out = {};
+      qaRows().forEach((r) => {
+        const kk = r.querySelector("input:nth-child(1)").value.trim();
+        const vv = r.querySelector("input:nth-child(2)").value;
+        if (!kk) return;
+        out[kk] = vv;
+      });
+      state.headers = out;
+    }
+
+    key.addEventListener("input", syncFromInputs);
+    val.addEventListener("input", syncFromInputs);
+
+    del.addEventListener("click", () => {
+      row.remove();
+      syncFromInputs();
+    });
+
+    return row;
+  }
+
+  function render() {
+    rowsWrap.innerHTML = "";
+    const entries = Object.entries(state.headers || {});
+    if (entries.length === 0) {
+      rowsWrap.appendChild(makeRow("", ""));
+    } else {
+      entries.forEach(([k, v]) => rowsWrap.appendChild(makeRow(k, v)));
+    }
+  }
+
+  function showIo(on) {
+    ioWrap.classList.toggle("is-hidden", !on);
+  }
+
+  btnAdd.addEventListener("click", () => {
+    rowsWrap.appendChild(makeRow("", ""));
   });
 
-  row.appendChild(keyInput);
-  row.appendChild(valInput);
-  row.appendChild(delBtn);
-  els.rows.appendChild(row);
-}
-
-function clearRows() {
-  els.rows.innerHTML = "";
-}
-
-function ensureAtLeastOneRow() {
-  if (els.rows.querySelectorAll(".hdr-row").length === 0) addRow("", "");
-}
-
-function openIO() {
-  els.io.open = true;
-  els.raw.focus();
-}
-
-function exportToRaw() {
-  const headers = readRowsToHeaders();
-  els.raw.value = headersToText(headers);
-  openIO();
-  els.raw.select();
-}
-
-function importFromRaw() {
-  const headers = parseRawHeaders(els.raw.value);
-  setHeaders(headers);
-}
-
-async function copyRaw() {
-  const text = escapeForClipboard(els.raw.value);
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    // fallback: select text for manual copy
-    els.raw.focus();
-    els.raw.select();
-  }
-}
-
-export function initHeaderEditor({ defaults } = {}) {
-  els.rows = byId("hdr-rows");
-  els.add = byId("hdr-add");
-  els.imp = byId("hdr-import");
-  els.exp = byId("hdr-export");
-  els.clr = byId("hdr-clear");
-  els.io = byId("hdr-io");
-  els.raw = byId("hdr-raw");
-  els.apply = byId("hdr-apply");
-  els.copy = byId("hdr-copy");
-
-  if (!els.rows) return;
-
-  els.add.addEventListener("click", () => addRow("", ""));
-  els.imp.addEventListener("click", () => openIO());
-  els.exp.addEventListener("click", () => exportToRaw());
-  els.clr.addEventListener("click", () => {
-    clearRows();
-    ensureAtLeastOneRow();
+  btnImport.addEventListener("click", () => {
+    showIo(true);
+    rawTa.value = toRawHeaders(state.headers);
+    rawTa.focus();
   });
 
-  els.apply.addEventListener("click", () => importFromRaw());
-  els.copy.addEventListener("click", () => copyRaw());
+  btnExport.addEventListener("click", () => {
+    showIo(true);
+    rawTa.value = toRawHeaders(state.headers);
+    rawTa.focus();
+  });
 
-  // Seed defaults
-  clearRows();
-  if (
-    defaults &&
-    typeof defaults === "object" &&
-    Object.keys(defaults).length > 0
-  ) {
-    for (const [k, v] of Object.entries(defaults)) addRow(k, v);
-  } else {
-    addRow("Accept", "application/json");
-  }
-  ensureAtLeastOneRow();
-}
+  btnClear.addEventListener("click", () => {
+    state.headers = {};
+    render();
+    showIo(false);
+  });
 
-export function getHeaders() {
-  return readRowsToHeaders();
-}
+  btnApply.addEventListener("click", () => {
+    state.headers = parseRawHeaders(rawTa.value);
+    render();
+    showIo(false);
+  });
 
-export function setHeaders(obj) {
-  clearRows();
-  for (const [k, v] of Object.entries(obj || {})) addRow(k, v);
-  ensureAtLeastOneRow();
-  // keep raw in sync (helpful if IO panel is open)
-  if (els.raw) els.raw.value = headersToText(getHeaders());
+  btnCopy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(rawTa.value);
+    } catch {}
+  });
+
+  render();
+
+  window.__wbsHeaders = {
+    get: () => ({ ...state.headers }),
+    set: (h) => {
+      state.headers = normalizeHeadersObj(h);
+      render();
+    },
+  };
 }

@@ -1,4 +1,4 @@
-import { bindTabs } from "./ui.js";
+import { bindNavigation, navigateTo } from "./ui.js";
 import { sendFromForm, saveCurrentToRepeater } from "./modules/interceptor.js";
 import {
   renderSavedList,
@@ -22,8 +22,7 @@ function wireInterceptor() {
   byId("btn-save").addEventListener("click", () => {
     const id = saveCurrentToRepeater();
     if (id) {
-      const repeaterTab = document.querySelector('.tab[data-tab="repeater"]');
-      if (repeaterTab) repeaterTab.click();
+      navigateTo("proxy", "http");
       renderSavedList({ onSelect: (selectedId) => setSelectedId(selectedId) });
     }
   });
@@ -67,7 +66,7 @@ function wireReplayViewToggle() {
 }
 
 function bootstrap() {
-  bindTabs();
+  bindNavigation();
   bindExtenderControls();
 
   initHeaderEditor({

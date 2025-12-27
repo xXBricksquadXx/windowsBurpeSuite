@@ -5,7 +5,7 @@ function byId(id) {
 const state = {
   prettyJson: false,
   trimHeaders: true,
-  lowercaseHeaderKeys: false,
+  lowercaseKeys: false,
 };
 
 export function bindExtenderControls() {
@@ -13,70 +13,62 @@ export function bindExtenderControls() {
   const trim = byId("ext-trim-headers");
   const lower = byId("ext-lowercase-keys");
 
-  if (pretty)
-    pretty.addEventListener("change", () => {
-      state.prettyJson = !!pretty.checked;
-    });
-  if (trim)
-    trim.addEventListener("change", () => {
-      state.trimHeaders = !!trim.checked;
-    });
-  if (lower)
-    lower.addEventListener("change", () => {
-      state.lowercaseHeaderKeys = !!lower.checked;
-    });
+  function sync() {
+    if (pretty) pretty.checked = state.prettyJson;
+    if (trim) trim.checked = state.trimHeaders;
+    if (lower) lower.checked = state.lowercaseKeys;
+  }
 
-  if (pretty) state.prettyJson = !!pretty.checked;
-  if (trim) state.trimHeaders = !!trim.checked;
-  if (lower) state.lowercaseHeaderKeys = !!lower.checked;
+  if (pretty) {
+    pretty.addEventListener("change", () => {
+      state.prettyJson = pretty.checked;
+    });
+  }
+
+  if (trim) {
+    trim.addEventListener("change", () => {
+      state.trimHeaders = trim.checked;
+    });
+  }
+
+  if (lower) {
+    lower.addEventListener("change", () => {
+      state.lowercaseKeys = lower.checked;
+    });
+  }
+
+  sync();
 }
 
 export function getExtenderConfig() {
   return { ...state };
 }
 
-export function applyRequestHooks(req, cfg) {
-  let headers = { ...(req.headers || {}) };
-
-  if (cfg.trimHeaders) {
-    const next = {};
-    for (const [k, v] of Object.entries(headers)) {
-      const nk = String(k).trim();
-      const nv = String(v).trim();
-      if (nk) next[nk] = nv;
-    }
-    headers = next;
+export function maybePrettyJson(text, cfg) {
+  if (!cfg.prettyJson) return text;
+  try {
+    const parsed = JSON.parse(text);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return text;
   }
-
-  if (cfg.lowercaseHeaderKeys) {
-    const next = {};
-    for (const [k, v] of Object.entries(headers)) {
-      next[String(k).toLowerCase()] = v;
-    }
-    headers = next;
-  }
-
-  return { ...req, headers };
 }
 
-export async function applyResponseHooks(res, cfg) {
-  if (!cfg.prettyJson) return res;
+export function maybeTrimHeaders(headerText, cfg) {
+  if (!cfg.trimHeaders) return headerText;
+  const lines = (headerText ?? "").split("\n");
+  return lines
+    .filter(Boolean)
+    .filter((l) => !/^date:/i.test(l))
+    .filter((l) => !/^server:/i.test(l))
+    .join("\n");
+}
 
-  const ct =
-    (res.headers &&
-      (res.headers["content-type"] || res.headers["Content-Type"])) ||
-    "";
-
-  const looksJson =
-    ct.toLowerCase().includes("application/json") ||
-    ct.toLowerCase().includes("+json");
-
-  if (!looksJson) return res;
-
-  try {
-    const parsed = JSON.parse(res.bodyText);
-    return { ...res, bodyText: JSON.stringify(parsed, null, 2) };
-  } catch {
-    return res;
+export function maybeLowercaseHeaderKeys(headers, cfg) {
+  if (!cfg.lowercaseKeys) return headers;
+  const out = {};
+  for (const [k, v] of Object.entries(headers || {})) {
+    out[String(k).toLowerCase()] = v;
   }
+  return out;
 }

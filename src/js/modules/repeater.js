@@ -1,161 +1,127 @@
-import { loadSaved, clearAll as clearAllStorage } from "./storage.js";
-import { applyRequestHooks, applyResponseHooks } from "./extender.js";
-import { diffLinesToHtml } from "./diff.js";
+import { loadSaved, saveSaved } from "./storage.js";
+import { diffText, renderDiff } from "./diff.js";
+import { maybePrettyJson, maybeLowercaseHeaderKeys } from "./extender.js";
 
 function byId(id) {
   return document.getElementById(id);
 }
 
 let selectedId = null;
-const lastBodyById = new Map();
-
-function serializeHeaders(obj) {
-  return Object.entries(obj || {})
-    .map(([k, v]) => `${k}: ${v}`)
-    .join("\n");
-}
-
-function el(tag, cls) {
-  const n = document.createElement(tag);
-  if (cls) n.className = cls;
-  return n;
-}
 
 export function setSelectedId(id) {
   selectedId = id;
-  const title = byId("replay-title");
-  const btn = byId("btn-replay");
-
-  const items = loadSaved();
-  const item = items.find((x) => x.id === selectedId);
-
-  if (!item) {
-    title.textContent = "Select a request…";
-    btn.disabled = true;
-    return;
-  }
-
-  title.textContent = `${item.method} ${item.url}`;
-  btn.disabled = false;
 }
 
-export function renderSavedList({ onSelect }) {
-  const host = byId("saved-list");
-  host.innerHTML = "";
+function formatTs(ts) {
+  try {
+    return new Date(ts).toLocaleString();
+  } catch {
+    return String(ts);
+  }
+}
+
+function makeListItem(item, { onSelect }) {
+  const wrap = document.createElement("div");
+  wrap.className = "list-item";
+  wrap.dataset.id = item.id;
+
+  const text = document.createElement("div");
+  text.className = "list-item__text";
+
+  const title = document.createElement("div");
+  title.className = "list-item__title";
+  title.textContent = `${item.method} ${item.url}`;
+
+  const sub = document.createElement("div");
+  sub.className = "list-item__sub";
+  sub.textContent = `${formatTs(item.ts)} • ${
+    Object.keys(item.headers || {}).length
+  } hdrs • ${item.body?.length || 0} bytes`;
+
+  text.appendChild(title);
+  text.appendChild(sub);
+
+  const btn = document.createElement("button");
+  btn.className = "btn secondary";
+  btn.type = "button";
+  btn.textContent = "Select";
+
+  btn.addEventListener("click", () => {
+    selectedId = item.id;
+    if (onSelect) onSelect(item.id);
+    byId("replay-title").textContent = `Selected: ${item.method} ${item.url}`;
+  });
+
+  wrap.appendChild(text);
+  wrap.appendChild(btn);
+
+  return wrap;
+}
+
+export function renderSavedList({ onSelect } = {}) {
+  const list = byId("saved-list");
+  list.innerHTML = "";
 
   const items = loadSaved();
-  if (items.length === 0) {
-    const empty = el("div", "meta");
-    empty.textContent = "No saved requests yet.";
-    host.appendChild(empty);
-    setSelectedId(null);
+  if (!items.length) {
+    const empty = document.createElement("div");
+    empty.className = "meta";
+    empty.textContent = "No saved requests yet. Use Proxy → Intercept → Save.";
+    list.appendChild(empty);
     return;
   }
 
-  for (const item of items) {
-    const row = el("div", "list-item");
-    const text = el("div", "list-item__text");
-    const title = el("div", "list-item__title");
-    const sub = el("div", "list-item__sub");
-    title.textContent = `${item.method} ${item.url}`;
-    sub.textContent = `Saved: ${item.createdAt}`;
-    text.appendChild(title);
-    text.appendChild(sub);
-
-    const btn = el("button");
-    btn.textContent = "Select";
-    btn.addEventListener("click", () => {
-      if (typeof onSelect === "function") onSelect(item.id);
-      setSelectedId(item.id);
-    });
-
-    row.appendChild(text);
-    row.appendChild(btn);
-    host.appendChild(row);
-  }
-
-  if (!selectedId && items[0]) setSelectedId(items[0].id);
+  items.forEach((it) => list.appendChild(makeListItem(it, { onSelect })));
 }
 
 export function clearAllSaved() {
-  clearAllStorage();
+  saveSaved([]);
   selectedId = null;
-  lastBodyById.clear();
-  byId("replay-out").value = "";
-  byId("replay-diff").innerHTML = "";
-  setSelectedId(null);
+
+  byId("replay-title").textContent = "Select a saved request";
+  byId("replay-out").textContent = "—";
+  byId("replay-diff").textContent = "—";
+}
+
+async function fetchReplay(item, cfg) {
+  const headers = maybeLowercaseHeaderKeys(item.headers || {}, cfg);
+
+  const init = { method: item.method, headers };
+  const hasBody = !["GET", "HEAD"].includes(item.method);
+  if (hasBody && item.body?.trim()?.length) init.body = item.body;
+
+  const t0 = performance.now();
+  const res = await fetch(item.url, init);
+  const t1 = performance.now();
+
+  const body = await res.text();
+  const pretty = maybePrettyJson(body, cfg);
+
+  const meta = `${res.status} ${res.statusText} • ${(t1 - t0).toFixed(0)}ms`;
+  return { meta, body: pretty };
 }
 
 export async function replaySelected(cfg) {
-  const outEl = byId("replay-out");
-  const diffEl = byId("replay-diff");
-
-  outEl.value = "Replaying…";
-  diffEl.innerHTML = "";
-
   const items = loadSaved();
   const item = items.find((x) => x.id === selectedId);
+
   if (!item) {
-    outEl.value = "No request selected.";
-    diffEl.innerHTML = `<span class="diff-hint">No request selected.</span>`;
+    alert("Select an item first");
     return;
   }
 
-  const baseReq = {
-    method: item.method,
-    url: item.url,
-    headers: item.headers || {},
-    body: item.body || "",
-  };
-  const req = applyRequestHooks(baseReq, cfg);
+  const out = byId("replay-out");
+  const diffEl = byId("replay-diff");
 
-  const init = { method: req.method, headers: req.headers };
-  const hasBody = !["GET", "HEAD"].includes(req.method);
-  if (hasBody && req.body && req.body.length > 0) init.body = req.body;
+  byId("replay-title").textContent = `Replaying: ${item.method} ${item.url}`;
 
-  const prevBody = lastBodyById.get(selectedId) ?? "";
+  const prev = out.textContent === "—" ? "" : out.textContent;
 
-  try {
-    const t0 = performance.now();
-    const response = await fetch(req.url, init);
-    const ms = Math.round(performance.now() - t0);
+  const res = await fetchReplay(item, cfg);
+  byId("replay-title").textContent = `Replay: ${res.meta}`;
 
-    const headersObj = {};
-    response.headers.forEach((v, k) => {
-      headersObj[k] = v;
-    });
-    const bodyText = await response.text();
+  out.textContent = res.body || "—";
 
-    let res = {
-      status: response.status,
-      statusText: response.statusText,
-      headers: headersObj,
-      bodyText,
-    };
-
-    res = await applyResponseHooks(res, cfg);
-
-    const headerBlock = serializeHeaders(res.headers);
-    outEl.value = [
-      `${res.status} ${res.statusText}`.trim(),
-      `${ms}ms`,
-      "",
-      headerBlock,
-      "",
-      res.bodyText,
-    ].join("\n");
-
-    // Diff view (body only; replay again to compare)
-    diffEl.innerHTML = diffLinesToHtml(prevBody, res.bodyText);
-    lastBodyById.set(selectedId, res.bodyText);
-  } catch (err) {
-    const msg = `Replay failed (likely CORS / network).\n\n${String(
-      err && err.message ? err.message : err
-    )}`;
-    outEl.value = msg;
-    diffEl.innerHTML = `<span class="diff-hint">${msg
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")}</span>`;
-  }
+  const d = diffText(prev, res.body || "");
+  diffEl.innerHTML = renderDiff(d);
 }
