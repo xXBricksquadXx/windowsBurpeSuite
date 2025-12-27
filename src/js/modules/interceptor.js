@@ -1,25 +1,15 @@
 import { upsert } from "./storage.js";
 import { applyRequestHooks, applyResponseHooks } from "./extender.js";
+import { getHeaders } from "./headersEditor.js";
 
-function byId(id) { return document.getElementById(id); }
-
-function parseHeaders(text) {
-  const headers = {};
-  const lines = String(text || "").split("\\n");
-  for (const raw of lines) {
-    const line = raw.replace(/\\r/g, "");
-    if (!line.trim()) continue;
-    const idx = line.indexOf(":");
-    if (idx <= 0) continue;
-    const k = line.slice(0, idx).trim();
-    const v = line.slice(idx + 1).trim();
-    if (k) headers[k] = v;
-  }
-  return headers;
+function byId(id) {
+  return document.getElementById(id);
 }
 
 function serializeHeaders(obj) {
-  return Object.entries(obj || {}).map(([k, v]) => `${k}: ${v}`).join("\\n");
+  return Object.entries(obj || {})
+    .map(([k, v]) => `${k}: ${v}`)
+    .join("\n");
 }
 
 function makeId() {
@@ -29,10 +19,8 @@ function makeId() {
 export function getFormRequest() {
   const method = String(byId("req-method").value || "GET").toUpperCase();
   const url = String(byId("req-url").value || "").trim();
-  const headersText = String(byId("req-headers").value || "");
+  const headers = getHeaders();
   const body = String(byId("req-body").value || "");
-  const headers = parseHeaders(headersText);
-
   return { method, url, headers, body };
 }
 
@@ -53,20 +41,20 @@ export async function sendFromForm(cfg) {
     return;
   }
 
-  const init = {
-    method: req.method,
-    headers: req.headers,
-  };
-
+  const init = { method: req.method, headers: req.headers };
   const hasBody = !["GET", "HEAD"].includes(req.method);
-  if (hasBody && req.body && req.body.length > 0) {
-    init.body = req.body;
-  }
+  if (hasBody && req.body && req.body.length > 0) init.body = req.body;
 
   try {
+    const t0 = performance.now();
     const response = await fetch(req.url, init);
+    const ms = Math.round(performance.now() - t0);
+
     const headersObj = {};
-    response.headers.forEach((v, k) => { headersObj[k] = v; });
+    response.headers.forEach((v, k) => {
+      headersObj[k] = v;
+    });
+
     const bodyText = await response.text();
 
     let out = {
@@ -80,7 +68,9 @@ export async function sendFromForm(cfg) {
 
     out = await applyResponseHooks(out, cfg);
 
-    metaEl.textContent = `${out.status} ${out.statusText || ""}`.trim();
+    metaEl.textContent = `${out.status} ${
+      out.statusText || ""
+    } • ${ms}ms`.trim();
     resHeadersEl.value = serializeHeaders(out.headers);
     resBodyEl.value = out.bodyText;
   } catch (err) {

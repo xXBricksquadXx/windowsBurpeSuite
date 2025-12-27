@@ -1,9 +1,17 @@
 import { bindTabs } from "./ui.js";
 import { sendFromForm, saveCurrentToRepeater } from "./modules/interceptor.js";
-import { renderSavedList, clearAllSaved, setSelectedId, replaySelected } from "./modules/repeater.js";
+import {
+  renderSavedList,
+  clearAllSaved,
+  setSelectedId,
+  replaySelected,
+} from "./modules/repeater.js";
 import { getExtenderConfig, bindExtenderControls } from "./modules/extender.js";
+import { initHeaderEditor } from "./modules/headersEditor.js";
 
-function byId(id) { return document.getElementById(id); }
+function byId(id) {
+  return document.getElementById(id);
+}
 
 function wireInterceptor() {
   byId("btn-send").addEventListener("click", async () => {
@@ -14,7 +22,6 @@ function wireInterceptor() {
   byId("btn-save").addEventListener("click", () => {
     const id = saveCurrentToRepeater();
     if (id) {
-      // Nudge user to Repeater after save; lightweight UX.
       const repeaterTab = document.querySelector('.tab[data-tab="repeater"]');
       if (repeaterTab) repeaterTab.click();
       renderSavedList({ onSelect: (selectedId) => setSelectedId(selectedId) });
@@ -38,11 +45,39 @@ function wireRepeater() {
   });
 }
 
+function wireReplayViewToggle() {
+  const rawBtn = byId("view-raw");
+  const diffBtn = byId("view-diff");
+  const rawWrap = byId("replay-raw-wrap");
+  const diffWrap = byId("replay-diff-wrap");
+
+  function setView(view) {
+    const isDiff = view === "diff";
+    rawWrap.classList.toggle("is-hidden", isDiff);
+    diffWrap.classList.toggle("is-hidden", !isDiff);
+
+    rawBtn.classList.toggle("secondary", !isDiff);
+    diffBtn.classList.toggle("secondary", isDiff);
+  }
+
+  rawBtn.addEventListener("click", () => setView("raw"));
+  diffBtn.addEventListener("click", () => setView("diff"));
+
+  setView("raw");
+}
+
 function bootstrap() {
   bindTabs();
   bindExtenderControls();
+
+  initHeaderEditor({
+    defaults: { Accept: "application/json" },
+  });
+
   wireInterceptor();
   wireRepeater();
+  wireReplayViewToggle();
+
   renderSavedList({ onSelect: (selectedId) => setSelectedId(selectedId) });
 }
 
