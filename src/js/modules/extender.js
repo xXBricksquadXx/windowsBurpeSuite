@@ -1,4 +1,6 @@
-function byId(id) { return document.getElementById(id); }
+function byId(id) {
+  return document.getElementById(id);
+}
 
 const state = {
   prettyJson: false,
@@ -11,11 +13,19 @@ export function bindExtenderControls() {
   const trim = byId("ext-trim-headers");
   const lower = byId("ext-lowercase-keys");
 
-  if (pretty) pretty.addEventListener("change", () => { state.prettyJson = !!pretty.checked; });
-  if (trim) trim.addEventListener("change", () => { state.trimHeaders = !!trim.checked; });
-  if (lower) lower.addEventListener("change", () => { state.lowercaseHeaderKeys = !!lower.checked; });
+  if (pretty)
+    pretty.addEventListener("change", () => {
+      state.prettyJson = !!pretty.checked;
+    });
+  if (trim)
+    trim.addEventListener("change", () => {
+      state.trimHeaders = !!trim.checked;
+    });
+  if (lower)
+    lower.addEventListener("change", () => {
+      state.lowercaseHeaderKeys = !!lower.checked;
+    });
 
-  // Initialize from DOM defaults
   if (pretty) state.prettyJson = !!pretty.checked;
   if (trim) state.trimHeaders = !!trim.checked;
   if (lower) state.lowercaseHeaderKeys = !!lower.checked;
@@ -51,8 +61,17 @@ export function applyRequestHooks(req, cfg) {
 
 export async function applyResponseHooks(res, cfg) {
   if (!cfg.prettyJson) return res;
-  const ct = (res.headers && (res.headers["content-type"] || res.headers["Content-Type"])) || "";
-  if (!ct.toLowerCase().includes("application/json")) return res;
+
+  const ct =
+    (res.headers &&
+      (res.headers["content-type"] || res.headers["Content-Type"])) ||
+    "";
+
+  const looksJson =
+    ct.toLowerCase().includes("application/json") ||
+    ct.toLowerCase().includes("+json");
+
+  if (!looksJson) return res;
 
   try {
     const parsed = JSON.parse(res.bodyText);
