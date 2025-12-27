@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>windowsBurpeSuite</title>
+    <link rel="stylesheet" href="./css/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand__title">windowsBurpeSuite</div>
+        <div class="brand__subtitle">Simple is beautiful — Interceptor / Repeater / Extender</div>
+      </div>
+      <nav class="tabs" aria-label="Tools">
+        <button class="tab is-active" data-tab="interceptor" type="button">Interceptor</button>
+        <button class="tab" data-tab="repeater" type="button">Repeater</button>
+        <button class="tab" data-tab="extender" type="button">Extender</button>
+      </nav>
+    </header>
+
+    <main class="app-main">
+      <section class="panel is-active" id="panel-interceptor" aria-label="Interceptor">
+        <div class="grid">
+          <div class="card">
+            <h2>Request</h2>
+            <div class="row">
+              <label>Method
+                <select id="req-method">
+                  <option>GET</option>
+                  <option>POST</option>
+                  <option>PUT</option>
+                  <option>PATCH</option>
+                  <option>DELETE</option>
+                  <option>OPTIONS</option>
+                </select>
+              </label>
+              <label class="grow">URL
+                <input id="req-url" type="url" spellcheck="false" placeholder="https://example.com/api" />
+              </label>
+            </div>
+            <label>Headers (one per line: Key: Value)
+              <textarea id="req-headers" rows="6" spellcheck="false" placeholder="Accept: application/json"></textarea>
+            </label>
+            <label>Body
+              <textarea id="req-body" rows="8" spellcheck="false" placeholder="{ }"></textarea>
+            </label>
+            <div class="row right">
+              <button id="btn-send" type="button">Send</button>
+              <button id="btn-save" type="button" class="secondary">Save to Repeater</button>
+            </div>
+            <p class="note">
+              Note: browser requests are constrained by CORS. For "real Burp-like" behavior, add a local proxy backend later.
+            </p>
+          </div>
+
+          <div class="card">
+            <h2>Response</h2>
+            <div id="res-meta" class="meta">—</div>
+            <label>Headers
+              <textarea id="res-headers" rows="8" readonly spellcheck="false"></textarea>
+            </label>
+            <label>Body
+              <textarea id="res-body" rows="12" readonly spellcheck="false"></textarea>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-repeater" aria-label="Repeater">
+        <div class="grid">
+          <div class="card">
+            <h2>Saved Requests</h2>
+            <div class="row">
+              <button id="btn-refresh" type="button" class="secondary">Refresh</button>
+              <button id="btn-clear" type="button" class="danger">Clear All</button>
+            </div>
+            <div id="saved-list" class="list"></div>
+          </div>
+
+          <div class="card">
+            <h2>Replay</h2>
+            <div class="row">
+              <div id="replay-title" class="meta">Select a request…</div>
+              <button id="btn-replay" type="button" disabled>Replay</button>
+            </div>
+            <label>Response
+              <textarea id="replay-out" rows="18" readonly spellcheck="false"></textarea>
+            </label>
+            <p class="note">Tip: Use Extender hooks to format JSON or normalize headers.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-extender" aria-label="Extender">
+        <div class="card">
+          <h2>Extender (Hook system)</h2>
+          <p class="note">Toggle small transforms that run before send / after receive.</p>
+          <div class="checks">
+            <label><input id="ext-pretty-json" type="checkbox" /> Pretty-print JSON response</label>
+            <label><input id="ext-trim-headers" type="checkbox" checked /> Trim header whitespace</label>
+            <label><input id="ext-lowercase-keys" type="checkbox" /> Lowercase header keys</label>
+          </div>
+          <h3>Notes</h3>
+          <ul>
+            <li>These hooks are intentionally tiny; the goal is clarity over complexity.</li>
+            <li>Later: add a plugin registry and load extensions dynamically.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <div class="meta">MIT Licensed • Built with Vanilla ES6 modules</div>
+    </footer>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
