@@ -1,212 +1,408 @@
+/* src/css/styles.css (REPLACE FULL FILE)
+   Theme: “80s Mac OS / Classic UI” vibe
+   - No Sass required
+   - Preserves existing class names & layout
+*/
+
+/* =========================
+   Variables
+========================= */
 :root{
-  --bg: #0b0a12;
-  --bg2: #0f0d1a;
-  --stroke: rgba(255,255,255,0.12);
-  --text: rgba(255,255,255,0.93);
-  --muted: rgba(255,255,255,0.62);
-  --accent: #8b5cf6;
-  --danger:#ef4444;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  /* Classic palette */
+  --desk: #94bee2;
+  --desk2:#7eaad3;
+
+  --paper: #ffffff;
+  --ink: #000000;
+  --muted: rgba(0,0,0,0.65);
+
+  --ui: #ffffff;
+  --ui2: #f3f3f3;
+  --ui3: #e8e8e8;
+
+  --stroke: #000000;
+  --stroke2: rgba(0,0,0,0.35);
+
+  --accent: #000000; /* classic invert highlight */
+  --danger: #b40000;
+
+  --ui-line: 2px;
+  --radius: 10px;
+
+  /* Fonts */
+  --font: "Chicago","Geneva","MS Sans Serif",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+/* =========================
+   Global reset
+========================= */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
+
 body{
   margin:0;
-  font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  background: radial-gradient(1100px 700px at 20% 10%, rgba(139,92,246,0.18), transparent 60%),
-              radial-gradient(900px 600px at 80% 0%, rgba(34,197,94,0.12), transparent 55%),
-              linear-gradient(180deg, var(--bg), var(--bg2));
-  color: var(--text);
+  font-family: var(--font);
+  letter-spacing: -0.015em;
+  color: var(--ink);
+
+  /* Desktop chequer background */
+  background:
+    linear-gradient(45deg, rgba(255,255,255,0.0) 25%, rgba(0,0,0,0.08) 25%, rgba(0,0,0,0.08) 75%, rgba(255,255,255,0.0) 75%, rgba(255,255,255,0.0)),
+    linear-gradient(45deg, rgba(255,255,255,0.0) 25%, rgba(0,0,0,0.08) 25%, rgba(0,0,0,0.08) 75%, rgba(255,255,255,0.0) 75%, rgba(255,255,255,0.0));
+  background-color: var(--desk);
+  background-size: 6px 6px;
+  background-position: 0 0, 3px 3px;
 }
 
+/* Make text selection feel “classic” */
+::selection{
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* =========================
+   App Header (menu-bar vibe)
+========================= */
 .app-header{
-  padding: 18px 16px 14px;
-  border-bottom: 1px solid var(--stroke);
+  padding: 10px 12px 8px;
   display:flex;
   align-items:flex-end;
-  gap: 16px;
+  gap: 12px;
   justify-content: space-between;
   flex-wrap: wrap;
+
   position: sticky;
   top: 0;
-  background: rgba(11,10,18,0.66);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   z-index: 10;
+
+  /* Classic menu bar frame */
+  background: #000;
+  border-bottom: var(--ui-line) solid #000;
 }
 
-.brand{ display:flex; align-items:center; gap: 12px; }
+.brand{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+
+  /* Inner “menu bar capsule” */
+  background: var(--paper);
+  border-radius: 14px 14px 0 0;
+  padding: 6px 10px 4px;
+  border: var(--ui-line) solid #000;
+  border-bottom: none;
+}
 
 .brand__mark{
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.03);
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: var(--ui-line) solid #000;
+  background: #fff;
   object-fit: cover;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+  box-shadow: none;
 }
 
-.brand__text{ display:flex; flex-direction:column; gap: 2px; }
-.brand__title{ font-weight: 950; letter-spacing: 1.2px; text-transform: lowercase; font-size: 18px; }
-.brand__subtitle{ color: var(--muted); font-size: 12.5px; letter-spacing: 0.2px; }
-
-.tabs { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-.subtabs { display: flex; gap: 10px; margin: 12px 0 14px; flex-wrap: wrap; }
-
-.tab {
-  border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.03);
-  color: var(--text);
-  padding: 9px 12px;
-  border-radius: 999px;
-  cursor: pointer;
-  font-weight: 800;
-  letter-spacing: 0.2px;
-  font-size: 13px;
+.brand__text{
+  display:flex;
+  flex-direction:column;
+  gap: 1px;
 }
-.tab:hover { filter: brightness(1.06); }
-.tab.is-active {
-  background: rgba(139, 92, 246, 0.14);
-  border-color: rgba(139, 92, 246, 0.35);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.06);
+.brand__title{
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  font-size: 14px;
+  line-height: 1.05;
 }
-
-.subtab {
-  border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.02);
+.brand__subtitle{
   color: var(--muted);
-  padding: 8px 11px;
-  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+/* =========================
+   Tabs / Subtabs (inverted active)
+========================= */
+.tabs{
+  display:flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+
+  /* give tabs their own “white strip” like menu items */
+  background: var(--paper);
+  border: var(--ui-line) solid #000;
+  border-bottom: none;
+  border-radius: 14px 14px 0 0;
+  padding: 6px 8px 4px;
+}
+
+.subtabs{
+  display:flex;
+  gap: 8px;
+  margin: 12px 0 14px;
+  flex-wrap: wrap;
+}
+
+.tab, .subtab{
+  border: var(--ui-line) solid #000;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 8px 12px;
+  border-radius: 12px;
   cursor: pointer;
   font-weight: 800;
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
   font-size: 13px;
-}
-.subtab:hover { filter: brightness(1.05); }
-.subtab.is-active {
-  background: rgba(139, 92, 246, 0.14);
-  border-color: rgba(139, 92, 246, 0.35);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.06);
-  color: var(--text);
+  line-height: 1;
+
+  box-shadow: 2px 2px 0 #000;
+  user-select: none;
 }
 
-.app-main { padding: 16px; }
+.tab:hover, .subtab:hover{
+  filter: none;
+  background: var(--ui2);
+}
 
-.panel { display: none; }
-.panel.is-active { display: block; }
+.tab.is-active, .subtab.is-active{
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 2px 2px 0 #000;
+}
 
-.grid {
-  display: grid;
+.tab:active, .subtab:active{
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #000;
+}
+
+/* =========================
+   Layout
+========================= */
+.app-main{ padding: 16px; }
+
+.panel{ display:none; }
+.panel.is-active{ display:block; }
+
+.grid{
+  display:grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   align-items: start;
 }
-@media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
-
-.card {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--stroke);
-  border-radius: 18px;
-  padding: 14px 14px 12px;
-  box-shadow: 0 10px 50px rgba(0,0,0,0.35);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+@media (max-width: 980px){
+  .grid{ grid-template-columns: 1fr; }
 }
 
-.card__title { font-weight: 950; letter-spacing: 0.4px; margin-bottom: 10px; }
+/* =========================
+   Cards (classic window panels)
+========================= */
+.card{
+  background: var(--paper);
+  border: var(--ui-line) solid #000;
+  border-radius: var(--radius);
+  padding: 14px 14px 12px;
 
-.card__hint {
+  /* Classic hard shadow */
+  box-shadow: 6px 6px 0 rgba(0,0,0,0.35);
+}
+
+.card__title{
+  font-weight: 900;
+  letter-spacing: 0;
+  margin-bottom: 10px;
+  text-transform: none;
+}
+
+.card__hint{
   color: var(--muted);
   font-size: 12.5px;
   line-height: 1.35;
   margin-top: 10px;
 }
 
-.row { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+/* =========================
+   Forms
+========================= */
+.row{
+  display:flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
 
-.label {
+.label{
   font-size: 12px;
   color: var(--muted);
-  letter-spacing: 0.3px;
-  font-weight: 800;
+  letter-spacing: 0;
+  font-weight: 900;
   text-transform: uppercase;
 }
 
-input, select, textarea, button { font: inherit; }
-input, select, textarea {
-  width: 100%;
-  border: 1px solid var(--stroke);
-  background: rgba(0,0,0,0.22);
-  color: var(--text);
-  border-radius: 14px;
+input, select, textarea, button{ font: inherit; }
+
+input, select, textarea{
+  width:100%;
+  border: var(--ui-line) solid #000;
+  background: #fff;
+  color: #000;
+  border-radius: 10px;
   padding: 10px 12px;
   outline: none;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.25);
 }
-textarea.textarea { resize: vertical; min-height: 120px; }
 
-.btn {
-  border: 1px solid rgba(139, 92, 246, 0.45);
-  background: rgba(139, 92, 246, 0.18);
-  color: var(--text);
+textarea.textarea{
+  resize: vertical;
+  min-height: 120px;
+}
+
+input:focus, select:focus, textarea:focus{
+  box-shadow: 0 0 0 2px #000, 2px 2px 0 rgba(0,0,0,0.25);
+}
+
+/* =========================
+   Buttons (classic press)
+========================= */
+.btn{
+  border: var(--ui-line) solid #000;
+  background: var(--paper);
+  color: var(--ink);
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 12px;
   cursor: pointer;
   font-weight: 900;
-  letter-spacing: 0.2px;
-}
-.btn:hover { filter: brightness(1.05); }
-.btn.secondary{ border-color: var(--stroke); background: rgba(255,255,255,0.03); }
-.btn.danger{ border-color: rgba(239, 68, 68, 0.55); background: rgba(239, 68, 68, 0.13); }
+  letter-spacing: 0;
 
+  box-shadow: 2px 2px 0 #000;
+}
+
+.btn:hover{
+  filter: none;
+  background: var(--ui2);
+}
+
+.btn:active{
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #000;
+}
+
+.btn.secondary{
+  background: var(--ui2);
+}
+
+.btn.danger{
+  background: #fff;
+  border-color: #000;
+  box-shadow: 2px 2px 0 #000;
+  position: relative;
+}
+
+.btn.danger::after{
+  content:"";
+  position:absolute;
+  inset: -2px;
+  border-radius: 12px;
+  border: 2px solid rgba(180,0,0,0.35);
+  pointer-events:none;
+}
+
+/* =========================
+   Meta + Code blocks
+========================= */
 .meta{
-  border: 1px solid var(--stroke);
-  background: rgba(0,0,0,0.20);
-  border-radius: 14px;
+  border: var(--ui-line) solid #000;
+  background: var(--ui2);
+  border-radius: 12px;
   padding: 10px 12px;
-  color: var(--muted);
+  color: rgba(0,0,0,0.75);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.25);
 }
 
-.code {
+.code{
   font-family: var(--mono);
   font-size: 12.5px;
   line-height: 1.35;
   white-space: pre;
   overflow: auto;
-  border: 1px solid var(--stroke);
-  border-radius: 14px;
+
+  border: var(--ui-line) solid #000;
+  border-radius: 12px;
   padding: 10px 12px;
-  background: rgba(0,0,0,0.20);
+  background: #fff;
+
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.25);
 }
 
-.segmented { display: inline-flex; gap: 8px; align-items: center; }
-.seg { padding: 8px 12px; }
+/* segmented controls */
+.segmented{
+  display:inline-flex;
+  gap: 8px;
+  align-items:center;
+}
+.seg{ padding: 8px 12px; }
 
-.is-hidden { display: none !important; }
+/* helpers */
+.is-hidden{ display:none !important; }
 
-.list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+/* =========================
+   Lists
+========================= */
+.list{
+  display:flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
 
-.list-item {
-  border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.03);
-  border-radius: 14px;
+.list-item{
+  border: var(--ui-line) solid #000;
+  background: #fff;
+  border-radius: 12px;
   padding: 10px;
-  display: flex;
+  display:flex;
   gap: 10px;
   align-items: center;
   justify-content: space-between;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.25);
 }
 
-.list-item__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.list-item__title { font-weight: 900; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.list-item__sub { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-item__text{
+  display:flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.list-item__title{
+  font-weight: 900;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-item__sub{
+  color: rgba(0,0,0,0.65);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-.check{ display:flex; align-items:center; gap: 10px; font-weight: 800; }
+/* checkbox rows */
+.check{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  font-weight: 900;
+}
 .check input{ width:auto; }
 
+/* =========================
+   Header editor rows
+========================= */
 .hdr-rows{ display:flex; flex-direction:column; gap: 8px; }
 .hdr-row{ display:flex; gap: 8px; align-items:center; }
 .hdr-row input{ flex:1; }
@@ -214,27 +410,41 @@ textarea.textarea { resize: vertical; min-height: 120px; }
 .hdr-actions{ display:flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .hdr-io{ margin-top: 10px; }
 
+/* =========================
+   Diff view
+========================= */
 .diff .diff-line{ font-family: var(--mono); }
-.diff .add{ color:#22c55e; }
-.diff .del{ color:#ef4444; }
+.diff .add{ color:#0a7a1f; }
+.diff .del{ color:#b40000; }
 
+/* =========================
+   Existing layout quirks you use
+========================= */
 /* Intercept: action row (Reset/Clear response) */
-.row.row-actions {
+.row.row-actions{
   flex-direction: row;
   gap: 10px;
 }
-.row.row-actions .btn {
-  flex: 1;
-}
+.row.row-actions .btn{ flex: 1; }
 
 /* HTTP history list: clickable rows + selected highlight */
-.list-item.is-clickable {
-  cursor: pointer;
+.list-item.is-clickable{ cursor:pointer; }
+.list-item.is-clickable:hover{
+  background: var(--ui2);
 }
-.list-item.is-clickable:hover {
-  filter: brightness(1.04);
+
+.list-item.is-selected{
+  background: #000;
+  color: #fff;
+  box-shadow: 2px 2px 0 #000;
 }
-.list-item.is-selected {
-  border-color: rgba(139, 92, 246, 0.45);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.06);
+.list-item.is-selected .list-item__sub{ color: rgba(255,255,255,0.78); }
+.list-item.is-selected .btn.secondary{
+  background: #fff;
+  color: #000;
+}
+
+/* Make “active” tabs feel crisp on dark header */
+.app-header .tab.is-active{
+  box-shadow: 2px 2px 0 #000;
 }
