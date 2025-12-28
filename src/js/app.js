@@ -1,3 +1,4 @@
+// src/js/app.js
 import { bindNavigation, navigateTo } from "./ui.js";
 import {
   sendFromForm,
@@ -13,11 +14,44 @@ import {
 } from "./modules/repeater.js";
 import { getExtenderConfig, bindExtenderControls } from "./modules/extender.js";
 import { initHeaderEditor } from "./modules/headersEditor.js";
-import { initScopeUI } from "./modules/scope.js";
-import { initSitemapUI } from "./modules/sitemap.js";
+import { bindScopeControls } from "./modules/scope.js";
+import { bindSitemapControls, renderSitemap } from "./modules/sitemap.js";
 
 function byId(id) {
   return document.getElementById(id);
+}
+
+const FILTER_KEY = "wbs_history_filters_v1";
+
+function loadFilters() {
+  try {
+    const raw = localStorage.getItem(FILTER_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed;
+  } catch {
+    return {};
+  }
+}
+
+function saveFilters(filters) {
+  try {
+    localStorage.setItem(FILTER_KEY, JSON.stringify(filters || {}));
+  } catch {}
+}
+
+function wireHistoryFilters() {
+  const el = byId("history-hide-oos");
+  if (!el) return;
+
+  const persisted = loadFilters();
+  el.checked = !!persisted.hideOutOfScope;
+
+  el.addEventListener("change", () => {
+    saveFilters({ ...persisted, hideOutOfScope: !!el.checked });
+    renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
+  });
 }
 
 function wireInterceptor() {
@@ -29,8 +63,14 @@ function wireInterceptor() {
   byId("btn-save").addEventListener("click", () => {
     const id = saveCurrentToRepeater();
     if (id) {
+      // optional: signal other panels to refresh if they listen
+      window.dispatchEvent(new CustomEvent("wbs:saved-changed"));
+
       navigateTo("proxy", "http");
       renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
+
+      // sitemap uses history; refresh it too
+      renderSitemap();
     }
   });
 
@@ -39,9 +79,13 @@ function wireInterceptor() {
     btnOverwrite.addEventListener("click", async () => {
       const overwrittenId = await overwriteFromForm();
       if (overwrittenId) {
+        window.dispatchEvent(new CustomEvent("wbs:saved-changed"));
+
         renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
         setSelectedId(overwrittenId);
         navigateTo("proxy", "http");
+
+        renderSitemap();
       }
     });
   }
@@ -55,7 +99,9 @@ function wireInterceptor() {
 
       try {
         await navigator.clipboard.writeText(text);
-      } catch {}
+      } catch {
+        // ignore
+      }
     });
   }
 
@@ -67,7 +113,6 @@ function wireInterceptor() {
     if (el) el.addEventListener("change", update);
   });
 
-  // If you later emit these events, preview will update without extra wiring
   window.addEventListener("wbs:headers-changed", update);
   window.addEventListener("wbs:extender-changed", update);
 }
@@ -79,7 +124,9 @@ function wireRepeater() {
 
   byId("btn-clear").addEventListener("click", () => {
     clearAllSaved();
+    window.dispatchEvent(new CustomEvent("wbs:saved-changed"));
     renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
+    renderSitemap();
   });
 
   byId("btn-replay").addEventListener("click", async () => {
@@ -117,13 +164,20 @@ function bootstrap() {
     defaults: { Accept: "application/json" },
   });
 
-  // Target tab wiring
-  initScopeUI();
-  initSitemapUI();
-
+  wireHistoryFilters();
   wireInterceptor();
   wireRepeater();
   wireReplayViewToggle();
+
+  // Target tab wiring
+  bindScopeControls();
+  bindSitemapControls();
+
+  // Re-render scope-dependent UIs immediately on changes
+  window.addEventListener("wbs:scope-changed", () => {
+    renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
+    renderSitemap();
+  });
 
   renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
 

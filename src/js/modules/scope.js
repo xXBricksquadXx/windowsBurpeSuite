@@ -1,21 +1,21 @@
+// src/js/modules/scope.js
 function byId(id) {
   return document.getElementById(id);
 }
 
-const KEY = "wbs_scope_v1";
+const STORE_KEY = "wbs_scope_v1";
 
 const defaults = {
   enabled: true,
-  hosts: [], // ["example.com", "example.com:443", "127.0.0.1:8787"]
-  paths: [], // ["/api", "/admin", "/v1"]
+  hosts: [],
+  prefixes: [],
 };
 
-let state = { ...defaults, ...load() };
-let inited = false;
+let state = { ...defaults, ...loadState() };
 
-function load() {
+function loadState() {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(STORE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return {};
@@ -25,329 +25,235 @@ function load() {
   }
 }
 
-function save() {
+function saveState() {
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
   } catch {}
 
-  try {
-    window.dispatchEvent(
-      new CustomEvent("wbs:scope-changed", { detail: state })
-    );
-  } catch {}
+  // Let other modules re-render (history badges, sitemap filter).
+  window.dispatchEvent(new CustomEvent("wbs:scope-changed"));
 }
 
 function normalizeHost(input) {
   const s = String(input || "").trim();
   if (!s) return "";
 
-  // If it's a URL, use URL.host (hostname:port)
-  try {
-    if (s.includes("://")) {
-      const u = new URL(s);
-      return String(u.host || "").toLowerCase();
+  // URL input
+  if (s.includes("://")) {
+    try {
+      return new URL(s).host.toLowerCase();
+    } catch {
+      return "";
     }
-  } catch {}
+  }
 
-  // If it looks like a URL without scheme
-  try {
-    if (s.includes("/") || s.includes("?")) {
-      const u = new URL("http://" + s.replace(/^\/+/, ""));
-      return String(u.host || "").toLowerCase();
-    }
-  } catch {}
-
-  return s.toLowerCase();
+  // raw host[:port]
+  return s.replace(/^\/+/, "").replace(/\/+$/, "").toLowerCase();
 }
 
-function normalizePathPrefix(input) {
-  let s = String(input || "").trim();
+function normalizePrefix(input) {
+  const s = String(input || "").trim();
   if (!s) return "";
-  if (!s.startsWith("/")) s = "/" + s;
-  // trim trailing slash except "/"
-  if (s.length > 1 && s.endsWith("/")) s = s.slice(0, -1);
-  return s;
-}
-
-function hostRuleMatches(reqHost, reqHostname, reqPort, rule) {
-  const r = String(rule || "").toLowerCase();
-  if (!r) return false;
-
-  // If rule includes port, match full host:port
-  if (r.includes(":")) return r === reqHost;
-
-  // Otherwise match hostname regardless of port
-  return r === reqHostname;
+  if (s === "/") return "/";
+  return s.startsWith("/") ? s : `/${s}`;
 }
 
 export function getScope() {
   return {
-    ...state,
-    hosts: [...(state.hosts || [])],
-    paths: [...(state.paths || [])],
+    enabled: !!state.enabled,
+    hosts: Array.from(state.hosts || []),
+    prefixes: Array.from(state.prefixes || []),
   };
 }
 
-export function isUrlInScope(urlStr, scopeState = getScope()) {
-  const scope = scopeState || getScope();
-  if (!scope.enabled) return true;
+export function isUrlInScope(urlStr) {
+  const cfg = getScope();
+
+  // if scope is disabled, treat everything as in-scope
+  if (!cfg.enabled) return true;
+
+  // no rules => in-scope
+  const hasHostRules = (cfg.hosts || []).length > 0;
+  const hasPrefixRules = (cfg.prefixes || []).length > 0;
+  if (!hasHostRules && !hasPrefixRules) return true;
 
   let u;
   try {
     u = new URL(String(urlStr || ""));
   } catch {
-    // if it isn't parseable, treat as out-of-scope when enabled
     return false;
   }
 
-  const reqHost = String(u.host || "").toLowerCase(); // hostname:port (if present)
-  const reqHostname = String(u.hostname || "").toLowerCase();
-  const reqPort = String(u.port || "");
+  const host = String(u.host || "").toLowerCase();
+  const path = `${u.pathname || "/"}${u.search || ""}`;
 
-  const hosts = Array.isArray(scope.hosts) ? scope.hosts : [];
-  const paths = Array.isArray(scope.paths) ? scope.paths : [];
-
-  // Host filter
-  if (hosts.length > 0) {
-    const okHost = hosts.some((h) =>
-      hostRuleMatches(reqHost, reqHostname, reqPort, h)
-    );
-    if (!okHost) return false;
+  if (
+    hasHostRules &&
+    !(cfg.hosts || []).some((h) => String(h).toLowerCase() === host)
+  ) {
+    return false;
   }
 
-  // Path filter
-  if (paths.length > 0) {
-    const p = String(u.pathname || "/");
-    const okPath = paths.some((pref) => p.startsWith(String(pref)));
-    if (!okPath) return false;
+  if (hasPrefixRules) {
+    const prefixes = (cfg.prefixes || []).map((p) => String(p || ""));
+    const ok = prefixes.some((p) => {
+      if (!p) return false;
+      if (p === "/") return true;
+      return path.startsWith(p);
+    });
+    if (!ok) return false;
   }
 
   return true;
 }
 
-function setMeta() {
+function renderList(container, items, { onRemove, emptyText }) {
+  container.innerHTML = "";
+
+  if (!items.length) {
+    const empty = document.createElement("div");
+    empty.className = "meta";
+    empty.textContent = emptyText || "—";
+    container.appendChild(empty);
+    return;
+  }
+
+  items.forEach((val) => {
+    const row = document.createElement("div");
+    row.className = "list-item";
+
+    const text = document.createElement("div");
+    text.className = "list-item__text";
+
+    const title = document.createElement("div");
+    title.className = "list-item__title";
+    title.textContent = val;
+
+    const sub = document.createElement("div");
+    sub.className = "list-item__sub";
+    sub.textContent = "Click × to remove";
+
+    text.appendChild(title);
+    text.appendChild(sub);
+
+    const right = document.createElement("div");
+    right.className = "list-item__right";
+
+    const del = document.createElement("button");
+    del.className = "btn danger sm";
+    del.type = "button";
+    del.textContent = "×";
+    del.title = "Remove";
+    del.addEventListener("click", () => onRemove(val));
+
+    right.appendChild(del);
+
+    row.appendChild(text);
+    row.appendChild(right);
+
+    container.appendChild(row);
+  });
+}
+
+function syncMeta() {
   const meta = byId("scope-meta");
   if (!meta) return;
 
-  const enabled = state.enabled ? "yes" : "no";
-  const hosts = (state.hosts || []).length;
-  const paths = (state.paths || []).length;
-  meta.textContent = `Enabled: ${enabled} • Hosts: ${hosts} • Paths: ${paths}`;
+  const cfg = getScope();
+  meta.textContent = `Scope: ${cfg.enabled ? "ENABLED" : "DISABLED"} • ${
+    cfg.hosts.length
+  } host(s) • ${cfg.prefixes.length} prefix(es)`;
 }
 
-function renderLists() {
+function syncUI() {
+  const enabled = byId("scope-enabled");
+  if (enabled) enabled.checked = !!state.enabled;
+
   const hostList = byId("scope-host-list");
   const pathList = byId("scope-path-list");
 
   if (hostList) {
-    hostList.innerHTML = "";
-    (state.hosts || []).forEach((h) => {
-      const row = document.createElement("div");
-      row.className = "list-item";
-
-      const text = document.createElement("div");
-      text.className = "list-item__text";
-
-      const title = document.createElement("div");
-      title.className = "list-item__title";
-      title.textContent = h;
-
-      const sub = document.createElement("div");
-      sub.className = "list-item__sub";
-      sub.textContent = "Click × to remove";
-
-      text.appendChild(title);
-      text.appendChild(sub);
-
-      const btn = document.createElement("button");
-      btn.className = "btn danger";
-      btn.type = "button";
-      btn.textContent = "×";
-      btn.addEventListener("click", () => {
+    renderList(hostList, state.hosts || [], {
+      emptyText: "No hosts set (matches all hosts).",
+      onRemove: (h) => {
         state.hosts = (state.hosts || []).filter((x) => x !== h);
-        save();
-        setMeta();
-        renderLists();
-      });
-
-      row.appendChild(text);
-      row.appendChild(btn);
-      hostList.appendChild(row);
+        saveState();
+        syncUI();
+      },
     });
   }
 
   if (pathList) {
-    pathList.innerHTML = "";
-    (state.paths || []).forEach((p) => {
-      const row = document.createElement("div");
-      row.className = "list-item";
-
-      const text = document.createElement("div");
-      text.className = "list-item__text";
-
-      const title = document.createElement("div");
-      title.className = "list-item__title";
-      title.textContent = p;
-
-      const sub = document.createElement("div");
-      sub.className = "list-item__sub";
-      sub.textContent = "Click × to remove";
-
-      text.appendChild(title);
-      text.appendChild(sub);
-
-      const btn = document.createElement("button");
-      btn.className = "btn danger";
-      btn.type = "button";
-      btn.textContent = "×";
-      btn.addEventListener("click", () => {
-        state.paths = (state.paths || []).filter((x) => x !== p);
-        save();
-        setMeta();
-        renderLists();
-      });
-
-      row.appendChild(text);
-      row.appendChild(btn);
-      pathList.appendChild(row);
+    renderList(pathList, state.prefixes || [], {
+      emptyText: "No prefixes set (matches all paths).",
+      onRemove: (p) => {
+        state.prefixes = (state.prefixes || []).filter((x) => x !== p);
+        saveState();
+        syncUI();
+      },
     });
   }
+
+  syncMeta();
 }
 
-function renderUI() {
-  const root = byId("target-scope");
-  if (!root) return;
-
-  root.innerHTML = `
-    <div class="grid">
-      <section class="card">
-        <div class="card__title">Scope</div>
-        <div class="card__hint">Define in-scope hosts and path prefixes. Stored locally in your browser.</div>
-
-        <div class="row">
-          <label class="check">
-            <input type="checkbox" id="scope-enabled" />
-            <span>Enable scope filtering</span>
-          </label>
-        </div>
-
-        <div class="row">
-          <div id="scope-meta" class="meta">—</div>
-        </div>
-
-        <div class="row">
-          <label class="label">Add host</label>
-          <input id="scope-host-input" placeholder="example.com:443 or https://example.com/api" />
-          <button id="scope-host-add" class="btn" type="button">Add host</button>
-        </div>
-
-        <div class="row">
-          <label class="label">Hosts</label>
-          <div id="scope-host-list" class="list"></div>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card__title">Path prefixes</div>
-        <div class="card__hint">Examples: /api, /admin, /v1</div>
-
-        <div class="row">
-          <label class="label">Add path prefix</label>
-          <input id="scope-path-input" placeholder="/api" />
-          <button id="scope-path-add" class="btn" type="button">Add prefix</button>
-        </div>
-
-        <div class="row">
-          <label class="label">Prefixes</label>
-          <div id="scope-path-list" class="list"></div>
-        </div>
-
-        <div class="row">
-          <button id="scope-clear" class="btn danger" type="button">Clear scope</button>
-        </div>
-      </section>
-    </div>
-  `;
-
-  // Bind
+export function bindScopeControls() {
   const enabled = byId("scope-enabled");
-  const hostIn = byId("scope-host-input");
+  const hostInput = byId("scope-host-input");
   const hostAdd = byId("scope-host-add");
-  const pathIn = byId("scope-path-input");
+
+  const pathInput = byId("scope-path-input");
   const pathAdd = byId("scope-path-add");
+
   const clearBtn = byId("scope-clear");
 
   if (enabled) {
-    enabled.checked = !!state.enabled;
     enabled.addEventListener("change", () => {
       state.enabled = !!enabled.checked;
-      save();
-      setMeta();
+      saveState();
+      syncMeta();
     });
   }
 
-  if (hostAdd && hostIn) {
+  if (hostAdd && hostInput) {
     const addHost = () => {
-      const h = normalizeHost(hostIn.value);
+      const h = normalizeHost(hostInput.value);
       if (!h) return;
-      const list = Array.isArray(state.hosts) ? state.hosts : [];
-      if (!list.includes(h)) list.unshift(h);
-      state.hosts = list;
-      hostIn.value = "";
-      save();
-      setMeta();
-      renderLists();
+      state.hosts = Array.from(new Set([...(state.hosts || []), h]));
+      hostInput.value = "";
+      saveState();
+      syncUI();
     };
 
     hostAdd.addEventListener("click", addHost);
-    hostIn.addEventListener("keydown", (e) => {
+    hostInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") addHost();
     });
   }
 
-  if (pathAdd && pathIn) {
-    const addPath = () => {
-      const p = normalizePathPrefix(pathIn.value);
+  if (pathAdd && pathInput) {
+    const addPrefix = () => {
+      const p = normalizePrefix(pathInput.value);
       if (!p) return;
-      const list = Array.isArray(state.paths) ? state.paths : [];
-      if (!list.includes(p)) list.unshift(p);
-      state.paths = list;
-      pathIn.value = "";
-      save();
-      setMeta();
-      renderLists();
+      state.prefixes = Array.from(new Set([...(state.prefixes || []), p]));
+      pathInput.value = "";
+      saveState();
+      syncUI();
     };
 
-    pathAdd.addEventListener("click", addPath);
-    pathIn.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") addPath();
+    pathAdd.addEventListener("click", addPrefix);
+    pathInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") addPrefix();
     });
   }
 
   if (clearBtn) {
     clearBtn.addEventListener("click", () => {
-      state.hosts = [];
-      state.paths = [];
-      save();
-      setMeta();
-      renderLists();
+      state = { ...defaults };
+      saveState();
+      syncUI();
     });
   }
 
-  setMeta();
-  renderLists();
-}
-
-export function initScopeUI() {
-  if (inited) return;
-  inited = true;
-
-  renderUI();
-
-  // If scope changes in another tab, update
-  window.addEventListener("storage", (e) => {
-    if (e.key !== KEY) return;
-    state = { ...defaults, ...load() };
-    renderUI();
-  });
+  syncUI();
 }

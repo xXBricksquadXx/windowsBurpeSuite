@@ -1,8 +1,10 @@
+// src/js/modules/repeater.js
 import { loadSaved, saveSaved } from "./storage.js";
 import { diffText, renderDiff } from "./diff.js";
 import { maybePrettyJson, maybeLowercaseHeaderKeys } from "./extender.js";
 import { navigateTo } from "../ui.js";
 import { loadRequestToForm, focusUrlField } from "./interceptor.js";
+import { isUrlInScope } from "./scope.js";
 
 function byId(id) {
   return document.getElementById(id);
@@ -37,6 +39,11 @@ function setReplayTitle(text) {
   if (el) el.textContent = text;
 }
 
+function hideOutOfScopeEnabled() {
+  const el = byId("history-hide-oos");
+  return !!el?.checked;
+}
+
 function makeListItem(item, { onSelect } = {}) {
   const wrap = document.createElement("div");
   wrap.className = "list-item is-clickable";
@@ -58,6 +65,16 @@ function makeListItem(item, { onSelect } = {}) {
   text.appendChild(title);
   text.appendChild(sub);
 
+  const right = document.createElement("div");
+  right.className = "list-item__right";
+
+  // scope badge
+  const inScope = isUrlInScope(item.url);
+  const badge = document.createElement("span");
+  badge.className = `badge ${inScope ? "in" : "out"}`;
+  badge.textContent = inScope ? "IN-SCOPE" : "OUT-OF-SCOPE";
+  right.appendChild(badge);
+
   const btn = document.createElement("button");
   btn.className = "btn secondary";
   btn.type = "button";
@@ -71,7 +88,7 @@ function makeListItem(item, { onSelect } = {}) {
     setReplayTitle(`Selected: ${item.method} ${item.url}`);
     syncSelectedStyles();
 
-    // Convenience: primes Intercept without edit mode
+    // primes Intercept without edit mode
     loadRequestToForm(item, { mode: "view" });
   });
 
@@ -87,22 +104,32 @@ function makeListItem(item, { onSelect } = {}) {
     focusUrlField({ select: true });
   });
 
+  right.appendChild(btn);
+
   wrap.appendChild(text);
-  wrap.appendChild(btn);
+  wrap.appendChild(right);
 
   return wrap;
 }
 
 export function renderSavedList({ onSelect } = {}) {
   const list = byId("saved-list");
+  if (!list) return;
+
   list.innerHTML = "";
 
-  const items = loadSaved();
+  let items = loadSaved();
+
+  if (hideOutOfScopeEnabled()) {
+    items = items.filter((it) => isUrlInScope(it.url));
+  }
+
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "meta";
-    empty.textContent =
-      "No saved requests yet. Use Proxy → Intercept → Save as new.";
+    empty.textContent = hideOutOfScopeEnabled()
+      ? "No in-scope requests. Disable “Hide out-of-scope” or add scope rules."
+      : "No saved requests yet. Use Proxy → Intercept → Save.";
     list.appendChild(empty);
     setSelectedId(null);
     return;

@@ -1,212 +1,247 @@
+// src/js/modules/sitemap.js
 import { loadSaved } from "./storage.js";
-import { getScope, isUrlInScope } from "./scope.js";
+import { isUrlInScope } from "./scope.js";
+import { navigateTo } from "../ui.js";
+import { focusUrlField } from "./interceptor.js";
 
 function byId(id) {
   return document.getElementById(id);
 }
 
-let inited = false;
+function setText(id, text) {
+  const el = byId(id);
+  if (el) el.textContent = text;
+}
 
-function fmtTs(ts) {
+function safeParseUrl(urlStr) {
   try {
-    return new Date(ts).toLocaleString();
+    return new URL(String(urlStr || ""));
   } catch {
-    return String(ts);
+    return null;
   }
 }
 
-function buildModel(items, { inScopeOnly }) {
-  const scope = getScope();
-  const filtered = (items || []).filter((it) => {
-    if (!inScopeOnly) return true;
-    return isUrlInScope(it.url, scope);
+function setInterceptUrlAndGo(url) {
+  const input = byId("req-url");
+  if (input) {
+    input.value = url;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  navigateTo("proxy", "intercept");
+  focusUrlField({ select: true });
+}
+
+async function copyText(text) {
+  const t = String(text || "");
+  if (!t) return;
+  try {
+    await navigator.clipboard.writeText(t);
+  } catch {
+    // fallback: no-op (user can select from intercept input)
+  }
+}
+
+function buildSitemap(items) {
+  // host -> pathKey -> { url, count, lastTs }
+  const map = new Map();
+
+  for (const it of items || []) {
+    const u = safeParseUrl(it.url);
+    if (!u) continue;
+
+    const host = u.host;
+    const pathKey = `${u.pathname || "/"}${u.search || ""}`;
+
+    if (!map.has(host)) map.set(host, new Map());
+    const paths = map.get(host);
+
+    const prev = paths.get(pathKey) || { url: it.url, count: 0, lastTs: 0 };
+    paths.set(pathKey, {
+      url: it.url,
+      count: prev.count + 1,
+      lastTs: Math.max(prev.lastTs || 0, it.ts || 0),
+    });
+  }
+
+  return map;
+}
+
+function renderHostBlock(host, pathsMap, { inScopeOnly } = {}) {
+  const hostRow = document.createElement("div");
+  hostRow.className = "list-item is-clickable";
+
+  const text = document.createElement("div");
+  text.className = "list-item__text";
+
+  const title = document.createElement("div");
+  title.className = "list-item__title";
+  title.textContent = host;
+
+  const sub = document.createElement("div");
+  sub.className = "list-item__sub";
+  sub.textContent = `${pathsMap.size} path(s)`;
+
+  text.appendChild(title);
+  text.appendChild(sub);
+
+  const right = document.createElement("div");
+  right.className = "list-item__right";
+
+  const toggle = document.createElement("button");
+  toggle.className = "btn secondary sm";
+  toggle.type = "button";
+  toggle.textContent = "▾";
+  toggle.title = "Collapse/expand";
+
+  right.appendChild(toggle);
+
+  hostRow.appendChild(text);
+  hostRow.appendChild(right);
+
+  const children = document.createElement("div");
+  children.className = "sitemap-children";
+
+  // sort by last seen desc
+  const entries = Array.from(pathsMap.entries()).sort((a, b) => {
+    const ta = a[1]?.lastTs || 0;
+    const tb = b[1]?.lastTs || 0;
+    return tb - ta;
   });
 
-  const hosts = new Map(); // host -> { hits, last, paths: Map(seg -> {hits,last}) }
+  let rendered = 0;
 
-  for (const it of filtered) {
-    let u;
-    try {
-      u = new URL(String(it.url || ""));
-    } catch {
-      continue;
-    }
+  for (const [pathKey, info] of entries) {
+    const url = info.url;
+    if (inScopeOnly && !isUrlInScope(url)) continue;
 
-    const host = String(u.host || "").toLowerCase();
-    const ts = it.ts || Date.now();
+    rendered++;
 
-    let node = hosts.get(host);
-    if (!node) {
-      node = { host, hits: 0, last: ts, paths: new Map() };
-      hosts.set(host, node);
-    }
+    const row = document.createElement("div");
+    row.className = "list-item is-clickable";
+    row.dataset.url = url;
 
-    node.hits += 1;
-    node.last = Math.max(node.last, ts);
+    const t = document.createElement("div");
+    t.className = "list-item__text";
 
-    const pathname = String(u.pathname || "/");
-    const seg = pathname.split("/").filter(Boolean)[0] || "/";
+    const p = document.createElement("div");
+    p.className = "list-item__title sitemap-path";
+    p.textContent = pathKey || "/";
 
-    const p = node.paths.get(seg) || { seg, hits: 0, last: ts };
-    p.hits += 1;
-    p.last = Math.max(p.last, ts);
-    node.paths.set(seg, p);
+    const s = document.createElement("div");
+    s.className = "list-item__sub";
+    s.textContent = `${info.count} hit(s) • click to load in Intercept`;
+
+    t.appendChild(p);
+    t.appendChild(s);
+
+    const r = document.createElement("div");
+    r.className = "list-item__right";
+
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "btn secondary sm";
+    copyBtn.type = "button";
+    copyBtn.textContent = "Copy";
+    copyBtn.title = "Copy URL";
+    copyBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await copyText(url);
+    });
+
+    r.appendChild(copyBtn);
+
+    row.appendChild(t);
+    row.appendChild(r);
+
+    row.addEventListener("click", () => setInterceptUrlAndGo(url));
+
+    children.appendChild(row);
   }
 
-  const hostList = Array.from(hosts.values()).sort((a, b) => b.last - a.last);
-  for (const h of hostList) {
-    h.pathList = Array.from(h.paths.values()).sort((a, b) => b.hits - a.hits);
+  // collapse behavior
+  let isOpen = true;
+
+  function syncToggle() {
+    children.classList.toggle("is-hidden", !isOpen);
+    toggle.textContent = isOpen ? "▾" : "▸";
   }
 
-  return {
-    totalRequests: (items || []).length,
-    shownRequests: filtered.length,
-    hostCount: hostList.length,
-    hostList,
-  };
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    isOpen = !isOpen;
+    syncToggle();
+  });
+
+  hostRow.addEventListener("click", () => {
+    isOpen = !isOpen;
+    syncToggle();
+  });
+
+  syncToggle();
+
+  return { hostRow, children, renderedPaths: rendered };
 }
 
-function render() {
-  const list = byId("sm-list");
-  const meta = byId("sm-meta");
-  const chk = byId("sm-inscope");
+export function renderSitemap() {
+  const treeEl = byId("sitemap-tree");
+  if (!treeEl) return;
 
-  if (!list || !meta || !chk) return;
+  const inScopeOnly = !!byId("sitemap-in-scope-only")?.checked;
 
-  const inScopeOnly = !!chk.checked;
   const items = loadSaved();
-  const model = buildModel(items, { inScopeOnly });
+  const map = buildSitemap(items);
 
-  const filterLabel = inScopeOnly ? "in-scope only" : "all";
-  meta.textContent = `Requests: ${model.shownRequests} • Hosts: ${model.hostCount} • Filter: ${filterLabel}`;
+  treeEl.innerHTML = "";
 
-  list.innerHTML = "";
-
-  if (model.shownRequests === 0) {
+  if (!items.length) {
+    setText(
+      "sitemap-meta",
+      "No history yet. Save requests in Proxy → Intercept."
+    );
     const empty = document.createElement("div");
     empty.className = "meta";
-    empty.textContent =
-      model.totalRequests === 0
-        ? "No traffic captured yet. Save requests in Proxy → Intercept."
-        : "No requests matched the current filter/scope.";
-    list.appendChild(empty);
+    empty.textContent = "No saved requests yet.";
+    treeEl.appendChild(empty);
     return;
   }
 
-  for (const h of model.hostList) {
-    const hostRow = document.createElement("div");
-    hostRow.className = "list-item";
+  const hosts = Array.from(map.keys()).sort((a, b) => a.localeCompare(b));
 
-    const hostText = document.createElement("div");
-    hostText.className = "list-item__text";
+  let hostCount = 0;
+  let pathCount = 0;
 
-    const hostTitle = document.createElement("div");
-    hostTitle.className = "list-item__title";
-    hostTitle.textContent = h.host;
+  for (const host of hosts) {
+    const pathsMap = map.get(host);
+    const block = renderHostBlock(host, pathsMap, { inScopeOnly });
 
-    const hostSub = document.createElement("div");
-    hostSub.className = "list-item__sub";
-    hostSub.textContent = `${h.hits} hits • last: ${fmtTs(h.last)}`;
+    // if in-scope-only hides everything for this host, skip it
+    if (inScopeOnly && block.renderedPaths === 0) continue;
 
-    hostText.appendChild(hostTitle);
-    hostText.appendChild(hostSub);
-    hostRow.appendChild(hostText);
-    list.appendChild(hostRow);
+    hostCount++;
+    pathCount += block.renderedPaths;
 
-    for (const p of h.pathList) {
-      const pathRow = document.createElement("div");
-      pathRow.className = "list-item";
-      pathRow.style.marginLeft = "18px";
-
-      const pathText = document.createElement("div");
-      pathText.className = "list-item__text";
-
-      const pathTitle = document.createElement("div");
-      pathTitle.className = "list-item__title";
-      pathTitle.textContent = p.seg === "/" ? "/" : p.seg;
-
-      const pathSub = document.createElement("div");
-      pathSub.className = "list-item__sub";
-      pathSub.textContent = `${p.hits} hits • last: ${fmtTs(p.last)}`;
-
-      pathText.appendChild(pathTitle);
-      pathText.appendChild(pathSub);
-
-      pathRow.appendChild(pathText);
-      list.appendChild(pathRow);
-    }
+    treeEl.appendChild(block.hostRow);
+    treeEl.appendChild(block.children);
   }
+
+  setText(
+    "sitemap-meta",
+    `Hosts: ${hostCount} • Paths: ${pathCount} • From: ${items.length} saved request(s)`
+  );
 }
 
-function renderUI() {
-  const root = byId("target-sitemap");
-  if (!root) return;
+export function bindSitemapControls() {
+  const refresh = byId("btn-sitemap-refresh");
+  const inScope = byId("sitemap-in-scope-only");
 
-  root.innerHTML = `
-    <div class="grid">
-      <section class="card">
-        <div class="card__title">Site map</div>
-        <div class="card__hint">Build a host/path tree from captured traffic (Proxy history).</div>
+  if (refresh) refresh.addEventListener("click", renderSitemap);
+  if (inScope) inScope.addEventListener("change", renderSitemap);
 
-        <div class="row">
-          <label class="check">
-            <input type="checkbox" id="sm-inscope" checked />
-            <span>In-scope only</span>
-          </label>
-        </div>
+  // re-render when scope changes (badges + filtering)
+  window.addEventListener("wbs:scope-changed", () => renderSitemap());
 
-        <div class="row">
-          <button id="sm-refresh" class="btn secondary" type="button">Refresh</button>
-        </div>
+  // optional: if your storage layer emits this, it will auto-refresh the map
+  window.addEventListener("wbs:saved-changed", () => renderSitemap());
 
-        <div class="row">
-          <div id="sm-meta" class="meta">—</div>
-        </div>
-
-        <div class="row">
-          <div id="sm-list" class="list"></div>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card__title">How scope affects the map</div>
-        <div class="card__hint">
-          Define scope in <b>Target → Scope</b>. When “In-scope only” is enabled, the site map filters to URLs that match your scope rules.
-          <br/><br/>
-          Matching rules:
-          <ul>
-            <li>If scope filtering is disabled, everything is considered in-scope.</li>
-            <li>If hosts are set, host must match.</li>
-            <li>If path prefixes are set, path must start with one of them.</li>
-          </ul>
-        </div>
-      </section>
-    </div>
-  `;
-
-  const refreshBtn = byId("sm-refresh");
-  const chk = byId("sm-inscope");
-
-  if (refreshBtn) refreshBtn.addEventListener("click", render);
-  if (chk) chk.addEventListener("change", render);
-
-  render();
-}
-
-export function initSitemapUI() {
-  if (inited) return;
-  inited = true;
-
-  renderUI();
-
-  // Auto-refresh when saved history changes (same tab)
-  window.addEventListener("wbs:saved-changed", () => render());
-
-  // Auto-refresh when scope changes (same tab)
-  window.addEventListener("wbs:scope-changed", () => render());
-
-  // If changes happen in another tab, "storage" fires
-  window.addEventListener("storage", (e) => {
-    if (e.key === "wbs_saved_v1" || e.key === "wbs_scope_v1") render();
-  });
+  renderSitemap();
 }

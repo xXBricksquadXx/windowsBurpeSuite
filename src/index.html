@@ -141,7 +141,7 @@
                 <div id="sitemap-meta" class="meta">—</div>
               </div>
 
-              <div id="sitemap-tree" class="list"></div>
+              <div id="sitemap-tree" class="list is-scroll"></div>
             </section>
 
             <section class="card">
@@ -153,6 +153,7 @@
               <div class="card__hint">
                 Matching rules:
                 <ul>
+                  <li>If scope filtering is disabled, everything is treated in-scope.</li>
                   <li>If no scope rules exist, everything is considered in-scope.</li>
                   <li>If hosts are set, host must match.</li>
                   <li>If path prefixes are set, path must start with one of them.</li>
@@ -188,7 +189,7 @@
 
               <div class="row">
                 <label class="label">Hosts</label>
-                <div id="scope-host-list" class="list"></div>
+                <div id="scope-host-list" class="list is-scroll"></div>
               </div>
             </section>
 
@@ -204,7 +205,7 @@
 
               <div class="row">
                 <label class="label">Prefixes</label>
-                <div id="scope-path-list" class="list"></div>
+                <div id="scope-path-list" class="list is-scroll"></div>
               </div>
 
               <div class="row">
@@ -333,11 +334,20 @@
           <div class="grid">
             <section class="card">
               <div class="card__title">HTTP history</div>
+
               <div class="row">
                 <button id="btn-refresh" class="btn secondary" type="button">Refresh</button>
                 <button id="btn-clear" class="btn danger" type="button">Clear All</button>
               </div>
-              <div id="saved-list" class="list"></div>
+
+              <div class="row">
+                <label class="check">
+                  <input type="checkbox" id="history-hide-oos" />
+                  <span>Hide out-of-scope</span>
+                </label>
+              </div>
+
+              <div id="saved-list" class="list is-scroll"></div>
             </section>
 
             <section class="card">

@@ -1,14 +1,11 @@
 /* src/css/styles.css (REPLACE FULL FILE)
-   Theme: “80s Mac OS / Classic UI” vibe
-   - No Sass required
-   - Preserves existing class names & layout
+   Theme: “80s Mac OS / Classic UI” vibe + upgrades
 */
 
 /* =========================
    Variables
 ========================= */
 :root{
-  /* Classic palette */
   --desk: #94bee2;
   --desk2:#7eaad3;
 
@@ -23,13 +20,12 @@
   --stroke: #000000;
   --stroke2: rgba(0,0,0,0.35);
 
-  --accent: #000000; /* classic invert highlight */
+  --accent: #000000;
   --danger: #b40000;
 
   --ui-line: 2px;
   --radius: 10px;
 
-  /* Fonts */
   --font: "Chicago","Geneva","MS Sans Serif",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
   --mono: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -46,7 +42,6 @@ body{
   letter-spacing: -0.015em;
   color: var(--ink);
 
-  /* Desktop chequer background */
   background:
     linear-gradient(45deg, rgba(255,255,255,0.0) 25%, rgba(0,0,0,0.08) 25%, rgba(0,0,0,0.08) 75%, rgba(255,255,255,0.0) 75%, rgba(255,255,255,0.0)),
     linear-gradient(45deg, rgba(255,255,255,0.0) 25%, rgba(0,0,0,0.08) 25%, rgba(0,0,0,0.08) 75%, rgba(255,255,255,0.0) 75%, rgba(255,255,255,0.0));
@@ -55,14 +50,13 @@ body{
   background-position: 0 0, 3px 3px;
 }
 
-/* Make text selection feel “classic” */
 ::selection{
   background: var(--ink);
   color: var(--paper);
 }
 
 /* =========================
-   App Header (menu-bar vibe)
+   App Header
 ========================= */
 .app-header{
   padding: 10px 12px 8px;
@@ -76,7 +70,6 @@ body{
   top: 0;
   z-index: 10;
 
-  /* Classic menu bar frame */
   background: #000;
   border-bottom: var(--ui-line) solid #000;
 }
@@ -86,7 +79,6 @@ body{
   align-items:center;
   gap: 10px;
 
-  /* Inner “menu bar capsule” */
   background: var(--paper);
   border-radius: 14px 14px 0 0;
   padding: 6px 10px 4px;
@@ -123,7 +115,7 @@ body{
 }
 
 /* =========================
-   Tabs / Subtabs (inverted active)
+   Tabs
 ========================= */
 .tabs{
   display:flex;
@@ -131,7 +123,6 @@ body{
   margin-top: 8px;
   flex-wrap: wrap;
 
-  /* give tabs their own “white strip” like menu items */
   background: var(--paper);
   border: var(--ui-line) solid #000;
   border-bottom: none;
@@ -163,14 +154,12 @@ body{
 }
 
 .tab:hover, .subtab:hover{
-  filter: none;
   background: var(--ui2);
 }
 
 .tab.is-active, .subtab.is-active{
   background: var(--ink);
   color: var(--paper);
-  box-shadow: 2px 2px 0 #000;
 }
 
 .tab:active, .subtab:active{
@@ -204,16 +193,31 @@ body{
   border: var(--ui-line) solid #000;
   border-radius: var(--radius);
   padding: 14px 14px 12px;
-
-  /* Classic hard shadow */
   box-shadow: 6px 6px 0 rgba(0,0,0,0.35);
+  position: relative;
 }
 
+/* Title bar stripes (requested) */
 .card__title{
   font-weight: 900;
   letter-spacing: 0;
-  margin-bottom: 10px;
-  text-transform: none;
+  margin: -14px -14px 12px; /* pull to top edge like a title bar */
+  padding: 8px 12px;
+  border-bottom: var(--ui-line) solid #000;
+  border-radius: calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0 0;
+  text-align: center;
+  position: relative;
+
+  /* stripes behind + a “white band” in the center so text stays readable */
+  background:
+    linear-gradient(#fff,#fff) center / 100% 62% no-repeat,
+    repeating-linear-gradient(
+      0deg,
+      #000 0px,
+      #000 2px,
+      transparent 2px,
+      transparent 5px
+    );
 }
 
 .card__hint{
@@ -264,7 +268,7 @@ input:focus, select:focus, textarea:focus{
 }
 
 /* =========================
-   Buttons (classic press)
+   Buttons
 ========================= */
 .btn{
   border: var(--ui-line) solid #000;
@@ -275,23 +279,16 @@ input:focus, select:focus, textarea:focus{
   cursor: pointer;
   font-weight: 900;
   letter-spacing: 0;
-
   box-shadow: 2px 2px 0 #000;
 }
 
-.btn:hover{
-  filter: none;
-  background: var(--ui2);
-}
-
+.btn:hover{ background: var(--ui2); }
 .btn:active{
   transform: translate(1px, 1px);
   box-shadow: 1px 1px 0 #000;
 }
 
-.btn.secondary{
-  background: var(--ui2);
-}
+.btn.secondary{ background: var(--ui2); }
 
 .btn.danger{
   background: #fff;
@@ -307,6 +304,14 @@ input:focus, select:focus, textarea:focus{
   border-radius: 12px;
   border: 2px solid rgba(180,0,0,0.35);
   pointer-events:none;
+}
+
+/* smaller utility button */
+.btn.sm{
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-weight: 900;
+  font-size: 12px;
 }
 
 /* =========================
@@ -357,6 +362,13 @@ input:focus, select:focus, textarea:focus{
   margin-top: 10px;
 }
 
+/* allow certain lists to scroll */
+.list.is-scroll{
+  max-height: 58vh;
+  overflow: auto;
+  padding-right: 4px; /* room for scrollbar thumb border */
+}
+
 .list-item{
   border: var(--ui-line) solid #000;
   background: #fff;
@@ -391,6 +403,14 @@ input:focus, select:focus, textarea:focus{
   text-overflow: ellipsis;
 }
 
+/* right-side cluster (badge + buttons) */
+.list-item__right{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  flex: none;
+}
+
 /* checkbox rows */
 .check{
   display:flex;
@@ -399,6 +419,38 @@ input:focus, select:focus, textarea:focus{
   font-weight: 900;
 }
 .check input{ width:auto; }
+
+/* =========================
+   Badges (scope match)
+========================= */
+.badge{
+  border: var(--ui-line) solid #000;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-weight: 900;
+  font-size: 11px;
+  line-height: 1;
+  box-shadow: 1px 1px 0 #000;
+  user-select: none;
+  white-space: nowrap;
+}
+.badge.in{
+  background: #000;
+  color: #fff;
+}
+.badge.out{
+  background: #fff;
+  color: #000;
+  position: relative;
+}
+.badge.out::after{
+  content:"";
+  position:absolute;
+  inset: -2px;
+  border-radius: 999px;
+  border: 2px solid rgba(180,0,0,0.35);
+  pointer-events:none;
+}
 
 /* =========================
    Header editor rows
@@ -420,18 +472,14 @@ input:focus, select:focus, textarea:focus{
 /* =========================
    Existing layout quirks you use
 ========================= */
-/* Intercept: action row (Reset/Clear response) */
 .row.row-actions{
   flex-direction: row;
   gap: 10px;
 }
 .row.row-actions .btn{ flex: 1; }
 
-/* HTTP history list: clickable rows + selected highlight */
 .list-item.is-clickable{ cursor:pointer; }
-.list-item.is-clickable:hover{
-  background: var(--ui2);
-}
+.list-item.is-clickable:hover{ background: var(--ui2); }
 
 .list-item.is-selected{
   background: #000;
@@ -443,8 +491,65 @@ input:focus, select:focus, textarea:focus{
   background: #fff;
   color: #000;
 }
+.list-item.is-selected .badge.in{
+  background: #fff;
+  color: #000;
+}
+.list-item.is-selected .badge.out{
+  background: #fff;
+  color: #000;
+}
 
-/* Make “active” tabs feel crisp on dark header */
+/* =========================
+   Classic scrollbars (requested)
+   - WebKit + Firefox
+========================= */
+.code, .list.is-scroll{
+  scrollbar-width: auto;
+  scrollbar-color: #000 #fff;
+}
+
+/* WebKit */
+.code::-webkit-scrollbar,
+.list.is-scroll::-webkit-scrollbar{
+  width: 18px;
+  height: 18px;
+  background: #fff;
+}
+
+.code::-webkit-scrollbar-track,
+.list.is-scroll::-webkit-scrollbar-track{
+  background:
+    linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000),
+    linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000);
+  background-color: #fff;
+  background-size: 6px 6px;
+  background-position: 0 0, 3px 3px;
+  border-left: var(--ui-line) solid #000;
+}
+
+.code::-webkit-scrollbar-thumb,
+.list.is-scroll::-webkit-scrollbar-thumb{
+  background: #fff;
+  border: var(--ui-line) solid #000;
+  box-shadow: inset 0 0 0 2px #fff;
+}
+
+/* Make “active” tabs crisp on dark header */
 .app-header .tab.is-active{
   box-shadow: 2px 2px 0 #000;
+}
+
+/* Sitemap small indent area */
+.sitemap-children{
+  margin-left: 14px;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sitemap-path{
+  font-family: var(--mono);
+  font-size: 12px;
 }
