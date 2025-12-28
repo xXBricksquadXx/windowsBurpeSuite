@@ -1,4 +1,3 @@
-// src/js/app.js (REPLACEMENT)
 import { bindNavigation, navigateTo } from "./ui.js";
 import {
   sendFromForm,
@@ -21,10 +20,6 @@ function byId(id) {
   return document.getElementById(id);
 }
 
-function emitHistoryChanged() {
-  window.dispatchEvent(new CustomEvent("wbs:history-changed"));
-}
-
 function wireInterceptor() {
   byId("btn-send").addEventListener("click", async () => {
     const cfg = getExtenderConfig();
@@ -34,7 +29,6 @@ function wireInterceptor() {
   byId("btn-save").addEventListener("click", () => {
     const id = saveCurrentToRepeater();
     if (id) {
-      emitHistoryChanged();
       navigateTo("proxy", "http");
       renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
     }
@@ -45,7 +39,6 @@ function wireInterceptor() {
     btnOverwrite.addEventListener("click", async () => {
       const overwrittenId = await overwriteFromForm();
       if (overwrittenId) {
-        emitHistoryChanged();
         renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
         setSelectedId(overwrittenId);
         navigateTo("proxy", "http");
@@ -62,9 +55,7 @@ function wireInterceptor() {
 
       try {
         await navigator.clipboard.writeText(text);
-      } catch {
-        // ignore; user can manually select/copy from the pre
-      }
+      } catch {}
     });
   }
 
@@ -76,7 +67,7 @@ function wireInterceptor() {
     if (el) el.addEventListener("change", update);
   });
 
-  // These listeners are harmless even if those events aren't emitted yet
+  // If you later emit these events, preview will update without extra wiring
   window.addEventListener("wbs:headers-changed", update);
   window.addEventListener("wbs:extender-changed", update);
 }
@@ -88,7 +79,6 @@ function wireRepeater() {
 
   byId("btn-clear").addEventListener("click", () => {
     clearAllSaved();
-    emitHistoryChanged();
     renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
   });
 
@@ -127,7 +117,7 @@ function bootstrap() {
     defaults: { Accept: "application/json" },
   });
 
-  // Phase 1.2 init
+  // Target tab wiring
   initScopeUI();
   initSitemapUI();
 
@@ -139,9 +129,6 @@ function bootstrap() {
 
   // initial preview render
   updateRequestPreview(getExtenderConfig());
-
-  // initial sitemap render (in case scope/sitemap init ran before storage was ready)
-  emitHistoryChanged();
 }
 
 bootstrap();

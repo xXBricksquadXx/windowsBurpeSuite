@@ -1,207 +1,212 @@
-// src/js/modules/sitemap.js
 import { loadSaved } from "./storage.js";
-import { getScope, isInScope } from "./scope.js";
+import { getScope, isUrlInScope } from "./scope.js";
 
 function byId(id) {
   return document.getElementById(id);
 }
 
-function setText(id, text) {
-  const el = byId(id);
-  if (el) el.textContent = text;
-}
-
-function safeParseUrl(urlStr) {
-  try {
-    return new URL(String(urlStr));
-  } catch {
-    return null;
-  }
-}
-
-function ensureMapChild(parent, key) {
-  if (!parent.children) parent.children = new Map();
-  if (!parent.children.has(key)) {
-    parent.children.set(key, {
-      name: key,
-      count: 0,
-      lastTs: 0,
-      children: new Map(),
-    });
-  }
-  return parent.children.get(key);
-}
-
-function buildTree(items) {
-  const hosts = new Map();
-
-  for (const it of items || []) {
-    const u = safeParseUrl(it.url);
-    if (!u) continue;
-
-    const host = String(u.host || "").toLowerCase();
-    const path = String(u.pathname || "/");
-
-    if (!hosts.has(host)) {
-      hosts.set(host, {
-        name: host,
-        count: 0,
-        lastTs: 0,
-        children: new Map(),
-      });
-    }
-
-    const hostNode = hosts.get(host);
-    hostNode.count += 1;
-    hostNode.lastTs = Math.max(hostNode.lastTs || 0, it.ts || 0);
-
-    const segs = path
-      .split("/")
-      .filter((s) => s.length > 0)
-      .slice(0, 50);
-
-    let cursor = hostNode;
-    if (segs.length === 0) {
-      // root hit
-      const rootKey = "/";
-      const node = ensureMapChild(hostNode, rootKey);
-      node.count += 1;
-      node.lastTs = Math.max(node.lastTs || 0, it.ts || 0);
-      continue;
-    }
-
-    for (const seg of segs) {
-      cursor = ensureMapChild(cursor, seg);
-      cursor.count += 1;
-      cursor.lastTs = Math.max(cursor.lastTs || 0, it.ts || 0);
-    }
-  }
-
-  return hosts;
-}
+let inited = false;
 
 function fmtTs(ts) {
   try {
     return new Date(ts).toLocaleString();
   } catch {
-    return "";
+    return String(ts);
   }
 }
 
-function flattenNodes(node, depth = 0) {
-  const out = [];
-  const kids = Array.from(node.children?.values?.() || []);
-  kids.sort((a, b) => a.name.localeCompare(b.name));
+function buildModel(items, { inScopeOnly }) {
+  const scope = getScope();
+  const filtered = (items || []).filter((it) => {
+    if (!inScopeOnly) return true;
+    return isUrlInScope(it.url, scope);
+  });
 
-  for (const child of kids) {
-    out.push({ node: child, depth });
-    out.push(...flattenNodes(child, depth + 1));
-  }
+  const hosts = new Map(); // host -> { hits, last, paths: Map(seg -> {hits,last}) }
 
-  return out;
-}
-
-function renderTree(container, hostsMap) {
-  if (!container) return;
-  container.innerHTML = "";
-
-  const hosts = Array.from(hostsMap.entries());
-  hosts.sort((a, b) => a[0].localeCompare(b[0]));
-
-  if (!hosts.length) {
-    const empty = document.createElement("div");
-    empty.className = "meta";
-    empty.textContent =
-      "No traffic captured yet. Save requests in Proxy → Intercept.";
-    container.appendChild(empty);
-    return;
-  }
-
-  for (const [, hostNode] of hosts) {
-    const hostHeader = document.createElement("div");
-    hostHeader.className = "meta";
-    hostHeader.textContent = `${hostNode.name} • ${
-      hostNode.count
-    } hits • last: ${fmtTs(hostNode.lastTs)}`;
-    container.appendChild(hostHeader);
-
-    const rows = flattenNodes(hostNode, 0);
-    if (!rows.length) {
-      const none = document.createElement("div");
-      none.className = "meta";
-      none.textContent = "No paths yet.";
-      container.appendChild(none);
+  for (const it of filtered) {
+    let u;
+    try {
+      u = new URL(String(it.url || ""));
+    } catch {
       continue;
     }
 
-    rows.forEach(({ node, depth }) => {
-      const row = document.createElement("div");
-      row.className = "list-item";
-      row.style.paddingLeft = `${10 + depth * 18}px`;
+    const host = String(u.host || "").toLowerCase();
+    const ts = it.ts || Date.now();
 
-      const text = document.createElement("div");
-      text.className = "list-item__text";
+    let node = hosts.get(host);
+    if (!node) {
+      node = { host, hits: 0, last: ts, paths: new Map() };
+      hosts.set(host, node);
+    }
 
-      const title = document.createElement("div");
-      title.className = "list-item__title";
-      title.textContent = node.name;
+    node.hits += 1;
+    node.last = Math.max(node.last, ts);
 
-      const sub = document.createElement("div");
-      sub.className = "list-item__sub";
-      sub.textContent = `${node.count} hits • last: ${fmtTs(node.lastTs)}`;
+    const pathname = String(u.pathname || "/");
+    const seg = pathname.split("/").filter(Boolean)[0] || "/";
 
-      text.appendChild(title);
-      text.appendChild(sub);
-
-      row.appendChild(text);
-      container.appendChild(row);
-    });
+    const p = node.paths.get(seg) || { seg, hits: 0, last: ts };
+    p.hits += 1;
+    p.last = Math.max(p.last, ts);
+    node.paths.set(seg, p);
   }
+
+  const hostList = Array.from(hosts.values()).sort((a, b) => b.last - a.last);
+  for (const h of hostList) {
+    h.pathList = Array.from(h.paths.values()).sort((a, b) => b.hits - a.hits);
+  }
+
+  return {
+    totalRequests: (items || []).length,
+    shownRequests: filtered.length,
+    hostCount: hostList.length,
+    hostList,
+  };
 }
 
-let uiBound = false;
+function render() {
+  const list = byId("sm-list");
+  const meta = byId("sm-meta");
+  const chk = byId("sm-inscope");
 
-export function initSitemapUI() {
-  if (uiBound) {
-    renderSitemap();
+  if (!list || !meta || !chk) return;
+
+  const inScopeOnly = !!chk.checked;
+  const items = loadSaved();
+  const model = buildModel(items, { inScopeOnly });
+
+  const filterLabel = inScopeOnly ? "in-scope only" : "all";
+  meta.textContent = `Requests: ${model.shownRequests} • Hosts: ${model.hostCount} • Filter: ${filterLabel}`;
+
+  list.innerHTML = "";
+
+  if (model.shownRequests === 0) {
+    const empty = document.createElement("div");
+    empty.className = "meta";
+    empty.textContent =
+      model.totalRequests === 0
+        ? "No traffic captured yet. Save requests in Proxy → Intercept."
+        : "No requests matched the current filter/scope.";
+    list.appendChild(empty);
     return;
   }
-  uiBound = true;
 
-  const inScopeOnly = byId("sitemap-in-scope-only");
-  const btnRefresh = byId("btn-sitemap-refresh");
+  for (const h of model.hostList) {
+    const hostRow = document.createElement("div");
+    hostRow.className = "list-item";
 
-  if (btnRefresh) btnRefresh.addEventListener("click", () => renderSitemap());
-  if (inScopeOnly)
-    inScopeOnly.addEventListener("change", () => renderSitemap());
+    const hostText = document.createElement("div");
+    hostText.className = "list-item__text";
 
-  window.addEventListener("wbs:history-changed", () => renderSitemap());
-  window.addEventListener("wbs:scope-changed", () => renderSitemap());
+    const hostTitle = document.createElement("div");
+    hostTitle.className = "list-item__title";
+    hostTitle.textContent = h.host;
 
-  renderSitemap();
+    const hostSub = document.createElement("div");
+    hostSub.className = "list-item__sub";
+    hostSub.textContent = `${h.hits} hits • last: ${fmtTs(h.last)}`;
+
+    hostText.appendChild(hostTitle);
+    hostText.appendChild(hostSub);
+    hostRow.appendChild(hostText);
+    list.appendChild(hostRow);
+
+    for (const p of h.pathList) {
+      const pathRow = document.createElement("div");
+      pathRow.className = "list-item";
+      pathRow.style.marginLeft = "18px";
+
+      const pathText = document.createElement("div");
+      pathText.className = "list-item__text";
+
+      const pathTitle = document.createElement("div");
+      pathTitle.className = "list-item__title";
+      pathTitle.textContent = p.seg === "/" ? "/" : p.seg;
+
+      const pathSub = document.createElement("div");
+      pathSub.className = "list-item__sub";
+      pathSub.textContent = `${p.hits} hits • last: ${fmtTs(p.last)}`;
+
+      pathText.appendChild(pathTitle);
+      pathText.appendChild(pathSub);
+
+      pathRow.appendChild(pathText);
+      list.appendChild(pathRow);
+    }
+  }
 }
 
-export function renderSitemap() {
-  const items = loadSaved();
-  const scope = getScope();
+function renderUI() {
+  const root = byId("target-sitemap");
+  if (!root) return;
 
-  const inScopeOnly = !!byId("sitemap-in-scope-only")?.checked;
+  root.innerHTML = `
+    <div class="grid">
+      <section class="card">
+        <div class="card__title">Site map</div>
+        <div class="card__hint">Build a host/path tree from captured traffic (Proxy history).</div>
 
-  const filtered = inScopeOnly
-    ? items.filter((it) => isInScope(it.url, scope))
-    : items;
+        <div class="row">
+          <label class="check">
+            <input type="checkbox" id="sm-inscope" checked />
+            <span>In-scope only</span>
+          </label>
+        </div>
 
-  const hostsMap = buildTree(filtered);
+        <div class="row">
+          <button id="sm-refresh" class="btn secondary" type="button">Refresh</button>
+        </div>
 
-  const hostCount = hostsMap.size;
-  const reqCount = filtered.length;
+        <div class="row">
+          <div id="sm-meta" class="meta">—</div>
+        </div>
 
-  setText(
-    "sitemap-meta",
-    `Requests: ${reqCount} • Hosts: ${hostCount} • Filter: ${
-      inScopeOnly ? "in-scope only" : "all"
-    }`
-  );
+        <div class="row">
+          <div id="sm-list" class="list"></div>
+        </div>
+      </section>
 
-  renderTree(byId("sitemap-tree"), hostsMap);
+      <section class="card">
+        <div class="card__title">How scope affects the map</div>
+        <div class="card__hint">
+          Define scope in <b>Target → Scope</b>. When “In-scope only” is enabled, the site map filters to URLs that match your scope rules.
+          <br/><br/>
+          Matching rules:
+          <ul>
+            <li>If scope filtering is disabled, everything is considered in-scope.</li>
+            <li>If hosts are set, host must match.</li>
+            <li>If path prefixes are set, path must start with one of them.</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  `;
+
+  const refreshBtn = byId("sm-refresh");
+  const chk = byId("sm-inscope");
+
+  if (refreshBtn) refreshBtn.addEventListener("click", render);
+  if (chk) chk.addEventListener("change", render);
+
+  render();
+}
+
+export function initSitemapUI() {
+  if (inited) return;
+  inited = true;
+
+  renderUI();
+
+  // Auto-refresh when saved history changes (same tab)
+  window.addEventListener("wbs:saved-changed", () => render());
+
+  // Auto-refresh when scope changes (same tab)
+  window.addEventListener("wbs:scope-changed", () => render());
+
+  // If changes happen in another tab, "storage" fires
+  window.addEventListener("storage", (e) => {
+    if (e.key === "wbs_saved_v1" || e.key === "wbs_scope_v1") render();
+  });
 }

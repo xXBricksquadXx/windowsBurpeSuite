@@ -27,6 +27,16 @@ function normalizeLegacy(items) {
     .filter((x) => x.url);
 }
 
+function emitSavedChanged(items) {
+  try {
+    window.dispatchEvent(
+      new CustomEvent("wbs:saved-changed", {
+        detail: { count: Array.isArray(items) ? items.length : 0 },
+      })
+    );
+  } catch {}
+}
+
 export function loadSaved() {
   try {
     const raw = localStorage.getItem(KEY);
@@ -56,23 +66,23 @@ export function loadSaved() {
 }
 
 export function saveSaved(items) {
-  localStorage.setItem(KEY, JSON.stringify(items || []));
-}
-
-export function getSavedById(id) {
-  if (!id) return null;
-  const items = loadSaved();
-  return items.find((x) => x.id === id) || null;
+  const arr = Array.isArray(items) ? items : [];
+  localStorage.setItem(KEY, JSON.stringify(arr));
+  emitSavedChanged(arr);
 }
 
 export function updateSavedById(id, patch) {
-  if (!id) return false;
+  try {
+    const all = loadSaved();
+    const idx = all.findIndex((x) => x && x.id === id);
+    if (idx < 0) return false;
 
-  const items = loadSaved();
-  const idx = items.findIndex((x) => x.id === id);
-  if (idx < 0) return false;
+    const prev = all[idx] || {};
+    all[idx] = { ...prev, ...patch, id: prev.id };
 
-  items[idx] = { ...items[idx], ...patch, id };
-  saveSaved(items);
-  return true;
+    saveSaved(all);
+    return true;
+  } catch {
+    return false;
+  }
 }
