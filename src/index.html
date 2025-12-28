@@ -40,34 +40,51 @@
       <!-- ========================= -->
       <!-- Dashboard -->
       <!-- ========================= -->
-      <section class="panel" id="panel-dashboard" data-main-panel="dashboard" aria-label="Dashboard">
+      <section
+        class="panel"
+        id="panel-dashboard"
+        data-main-panel="dashboard"
+        aria-label="Dashboard"
+      >
         <div class="card">
           <div class="card__title">Project Dashboard</div>
-          <div class="card__hint">Overview of the current project + phase progress.</div>
+          <div class="card__hint">
+            Project = this browser instance. Data is stored locally (localStorage). No backend proxy yet.
+          </div>
         </div>
 
         <div class="grid">
           <div class="card">
             <div class="card__title">Phase status</div>
+
             <div class="list">
               <div class="list-item">
                 <div class="list-item__text">
                   <div class="list-item__title">Current</div>
-                  <div class="list-item__sub">Phase 1 — request builder + history + tooling</div>
+                  <div class="list-item__sub">
+                    Phase 1.2 — Target: scope + site map derived from Proxy history (plus out-of-scope filtering)
+                  </div>
                 </div>
               </div>
+
               <div class="list-item">
                 <div class="list-item__text">
                   <div class="list-item__title">Next</div>
-                  <div class="list-item__sub">Phase 1.2 — Target: scope + site map from history</div>
+                  <div class="list-item__sub">
+                    Phase 1.3 — Workflow glue + polish: sitemap node → Intercept URL, copy URL, scope badges in history rows
+                  </div>
                 </div>
               </div>
+
               <div class="list-item">
                 <div class="list-item__text">
                   <div class="list-item__title">Later</div>
-                  <div class="list-item__sub">Phase 2 — HTTP proxy + CONNECT tunnel</div>
+                  <div class="list-item__sub">
+                    Phase 2 — Local proxy companion (CORS bypass, richer HTTP, cookies, timings)
+                  </div>
                 </div>
               </div>
+
               <div class="list-item">
                 <div class="list-item__text">
                   <div class="list-item__title">Later</div>
@@ -75,10 +92,20 @@
                 </div>
               </div>
             </div>
+
+            <div class="card__hint">
+              Shipped in current phase:
+              <ul>
+                <li><b>Proxy</b>: request builder + response viewer + history + replay + diff</li>
+                <li><b>Target</b>: scope (hosts + path prefixes) + sitemap from history</li>
+                <li><b>Filters</b>: in-scope only (sitemap) + hide out-of-scope (history)</li>
+              </ul>
+            </div>
           </div>
 
           <div class="card">
             <div class="card__title">Quick actions</div>
+
             <div class="list">
               <div class="list-item">
                 <div class="list-item__text">
@@ -86,18 +113,35 @@
                   <div class="list-item__sub">Proxy → Intercept → Send</div>
                 </div>
               </div>
+
               <div class="list-item">
                 <div class="list-item__text">
                   <div class="list-item__title">Save to history</div>
                   <div class="list-item__sub">Proxy → Intercept → Save as new</div>
                 </div>
               </div>
+
               <div class="list-item">
                 <div class="list-item__text">
-                  <div class="list-item__title">Edit a history item</div>
-                  <div class="list-item__sub">Proxy → HTTP history → click row → Overwrite</div>
+                  <div class="list-item__title">Define scope</div>
+                  <div class="list-item__sub">Target → Scope → Add host/prefix → Enable filtering</div>
                 </div>
               </div>
+
+              <div class="list-item">
+                <div class="list-item__text">
+                  <div class="list-item__title">Build sitemap</div>
+                  <div class="list-item__sub">Target → Site map → Refresh (optional) + In-scope only</div>
+                </div>
+              </div>
+
+              <div class="list-item">
+                <div class="list-item__text">
+                  <div class="list-item__title">Hide out-of-scope traffic</div>
+                  <div class="list-item__sub">Proxy → HTTP history → Toggle “Hide out-of-scope”</div>
+                </div>
+              </div>
+
               <div class="list-item">
                 <div class="list-item__text">
                   <div class="list-item__title">Replay + diff</div>
@@ -114,13 +158,23 @@
       <!-- ========================= -->
       <section class="panel" id="panel-target" data-main-panel="target" aria-label="Target">
         <nav class="subtabs" aria-label="Target subtabs">
-          <button class="subtab is-active" data-main="target" data-subtab="sitemap" type="button">Site map</button>
+          <button class="subtab is-active" data-main="target" data-subtab="sitemap" type="button">
+            Site map
+          </button>
           <button class="subtab" data-main="target" data-subtab="scope" type="button">Scope</button>
-          <button class="subtab" data-main="target" data-subtab="issues" type="button">Issue definitions</button>
+          <button class="subtab" data-main="target" data-subtab="issues" type="button">
+            Issue definitions
+          </button>
         </nav>
 
         <!-- Target: Site map -->
-        <section class="panel is-active subpanel" id="target-sitemap" data-main="target" data-subpanel="sitemap" aria-label="Target: Site map">
+        <section
+          class="panel is-active subpanel"
+          id="target-sitemap"
+          data-main="target"
+          data-subpanel="sitemap"
+          aria-label="Target: Site map"
+        >
           <div class="grid">
             <section class="card">
               <div class="card__title">Site map</div>
@@ -147,7 +201,8 @@
             <section class="card">
               <div class="card__title">How scope affects the map</div>
               <div class="card__hint">
-                Define scope in <b>Target → Scope</b>. When “In-scope only” is enabled, the site map filters to URLs that match your scope rules.
+                Define scope in <b>Target → Scope</b>. When “In-scope only” is enabled, the site map filters
+                to URLs that match your scope rules.
               </div>
 
               <div class="card__hint">
@@ -164,7 +219,13 @@
         </section>
 
         <!-- Target: Scope -->
-        <section class="panel subpanel" id="target-scope" data-main="target" data-subpanel="scope" aria-label="Target: Scope">
+        <section
+          class="panel subpanel"
+          id="target-scope"
+          data-main="target"
+          data-subpanel="scope"
+          aria-label="Target: Scope"
+        >
           <div class="grid">
             <section class="card">
               <div class="card__title">Scope</div>
@@ -216,7 +277,13 @@
         </section>
 
         <!-- Target: Issue definitions -->
-        <section class="panel subpanel" id="target-issues" data-main="target" data-subpanel="issues" aria-label="Target: Issue definitions">
+        <section
+          class="panel subpanel"
+          id="target-issues"
+          data-main="target"
+          data-subpanel="issues"
+          aria-label="Target: Issue definitions"
+        >
           <div class="card">
             <div class="card__title">Issue definitions</div>
             <div class="card__hint">Later phase: templates; auto-flag patterns and annotate history.</div>
@@ -229,14 +296,22 @@
       <!-- ========================= -->
       <section class="panel is-active" id="panel-proxy" data-main-panel="proxy" aria-label="Proxy">
         <nav class="subtabs" aria-label="Proxy subtabs">
-          <button class="subtab is-active" data-main="proxy" data-subtab="intercept" type="button">Intercept</button>
+          <button class="subtab is-active" data-main="proxy" data-subtab="intercept" type="button">
+            Intercept
+          </button>
           <button class="subtab" data-main="proxy" data-subtab="http" type="button">HTTP history</button>
           <button class="subtab" data-main="proxy" data-subtab="ws" type="button">WebSockets history</button>
           <button class="subtab" data-main="proxy" data-subtab="settings" type="button">Proxy settings</button>
         </nav>
 
         <!-- Proxy: Intercept -->
-        <section class="panel is-active subpanel" id="panel-interceptor" data-main="proxy" data-subpanel="intercept" aria-label="Proxy: Intercept">
+        <section
+          class="panel is-active subpanel"
+          id="panel-interceptor"
+          data-main="proxy"
+          data-subpanel="intercept"
+          aria-label="Proxy: Intercept"
+        >
           <div class="grid">
             <section class="card">
               <div class="card__title">Request</div>
@@ -269,7 +344,12 @@
                 </div>
 
                 <div id="hdr-io" class="hdr-io is-hidden">
-                  <textarea id="hdr-raw" class="textarea" rows="6" placeholder="Header: value&#10;Another: value"></textarea>
+                  <textarea
+                    id="hdr-raw"
+                    class="textarea"
+                    rows="6"
+                    placeholder="Header: value&#10;Another: value"
+                  ></textarea>
                   <div class="hdr-actions">
                     <button id="hdr-apply" class="btn" type="button">Apply</button>
                     <button id="hdr-copy" class="btn secondary" type="button">Copy</button>
@@ -283,7 +363,12 @@
 
               <div class="row">
                 <label class="label">Body</label>
-                <textarea id="req-body" class="textarea" rows="12" placeholder='{"hello":"world"}'></textarea>
+                <textarea
+                  id="req-body"
+                  class="textarea"
+                  rows="12"
+                  placeholder='{"hello":"world"}'
+                ></textarea>
               </div>
 
               <div class="row">
@@ -314,13 +399,16 @@
 
             <section class="card">
               <div class="card__title">Response</div>
+
               <div class="row">
                 <div id="res-meta" class="meta">—</div>
               </div>
+
               <div class="row">
                 <label class="label">Headers</label>
                 <pre id="res-headers" class="code">—</pre>
               </div>
+
               <div class="row">
                 <label class="label">Body</label>
                 <pre id="res-body" class="code">—</pre>
@@ -330,7 +418,13 @@
         </section>
 
         <!-- Proxy: HTTP history -->
-        <section class="panel subpanel" id="panel-repeater" data-main="proxy" data-subpanel="http" aria-label="Proxy: HTTP history">
+        <section
+          class="panel subpanel"
+          id="panel-repeater"
+          data-main="proxy"
+          data-subpanel="http"
+          aria-label="Proxy: HTTP history"
+        >
           <div class="grid">
             <section class="card">
               <div class="card__title">HTTP history</div>
@@ -352,6 +446,7 @@
 
             <section class="card">
               <div class="card__title">Replay</div>
+
               <div class="row">
                 <div id="replay-title" class="meta">Select a saved request</div>
               </div>
@@ -377,7 +472,13 @@
         </section>
 
         <!-- Proxy: WebSockets history -->
-        <section class="panel subpanel" id="panel-ws" data-main="proxy" data-subpanel="ws" aria-label="Proxy: WebSockets history">
+        <section
+          class="panel subpanel"
+          id="panel-ws"
+          data-main="proxy"
+          data-subpanel="ws"
+          aria-label="Proxy: WebSockets history"
+        >
           <div class="card">
             <div class="card__title">WebSockets history</div>
             <div class="card__hint">Later phase: capture WS upgrades + frames via the proxy layer.</div>
@@ -385,7 +486,13 @@
         </section>
 
         <!-- Proxy: Settings -->
-        <section class="panel subpanel" id="panel-extender" data-main="proxy" data-subpanel="settings" aria-label="Proxy: Settings">
+        <section
+          class="panel subpanel"
+          id="panel-extender"
+          data-main="proxy"
+          data-subpanel="settings"
+          aria-label="Proxy: Settings"
+        >
           <div class="card">
             <div class="card__title">Proxy settings</div>
 
@@ -422,34 +529,60 @@
       <!-- ========================= -->
       <section class="panel" id="panel-intruder" data-main-panel="intruder" aria-label="Intruder">
         <nav class="subtabs" aria-label="Intruder subtabs">
-          <button class="subtab is-active" data-main="intruder" data-subtab="positions" type="button">Positions</button>
+          <button class="subtab is-active" data-main="intruder" data-subtab="positions" type="button">
+            Positions
+          </button>
           <button class="subtab" data-main="intruder" data-subtab="payloads" type="button">Payloads</button>
           <button class="subtab" data-main="intruder" data-subtab="pool" type="button">Resource pool</button>
           <button class="subtab" data-main="intruder" data-subtab="settings" type="button">Settings</button>
         </nav>
 
-        <section class="panel is-active subpanel" id="intruder-positions" data-main="intruder" data-subpanel="positions" aria-label="Intruder: Positions">
+        <section
+          class="panel is-active subpanel"
+          id="intruder-positions"
+          data-main="intruder"
+          data-subpanel="positions"
+          aria-label="Intruder: Positions"
+        >
           <div class="card">
             <div class="card__title">Positions</div>
             <div class="card__hint">Later phase: define insertion points in a request template.</div>
           </div>
         </section>
 
-        <section class="panel subpanel" id="intruder-payloads" data-main="intruder" data-subpanel="payloads" aria-label="Intruder: Payloads">
+        <section
+          class="panel subpanel"
+          id="intruder-payloads"
+          data-main="intruder"
+          data-subpanel="payloads"
+          aria-label="Intruder: Payloads"
+        >
           <div class="card">
             <div class="card__title">Payloads</div>
             <div class="card__hint">Later phase: simple payload lists + sequential iteration.</div>
           </div>
         </section>
 
-        <section class="panel subpanel" id="intruder-pool" data-main="intruder" data-subpanel="pool" aria-label="Intruder: Resource pool">
+        <section
+          class="panel subpanel"
+          id="intruder-pool"
+          data-main="intruder"
+          data-subpanel="pool"
+          aria-label="Intruder: Resource pool"
+        >
           <div class="card">
             <div class="card__title">Resource pool</div>
             <div class="card__hint">Later: concurrency limits, delays, retries, throttling.</div>
           </div>
         </section>
 
-        <section class="panel subpanel" id="intruder-settings" data-main="intruder" data-subpanel="settings" aria-label="Intruder: Settings">
+        <section
+          class="panel subpanel"
+          id="intruder-settings"
+          data-main="intruder"
+          data-subpanel="settings"
+          aria-label="Intruder: Settings"
+        >
           <div class="card">
             <div class="card__title">Settings</div>
             <div class="card__hint">Good home for proxy notes + CA/TLS guidance docs. Implementation comes later.</div>
