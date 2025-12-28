@@ -1,17 +1,9 @@
 # windowsBurpeSuite
 
-A minimal, browser-based “Burp-like” toolbox for **manual request crafting + local history + replay + diff**.
-
-This is **not** a system proxy / MITM tool. It is a lightweight UI that sends requests via the browser (`fetch()`), saves them to local history (`localStorage`), and supports replay + diff.
-
-## What this is / isn’t
-
-**This is:**
-
 - A request builder (method / URL / headers / body)
 - A history list (save, select, replay)
-- A simple diff view (compare last replay response vs current)
-- A “raw request preview” you can copy/paste for notes
+- A diff view (compare last replay response vs current)
+- Scope rules + sitemap derived from captured traffic
 
 **This is NOT (yet):**
 
@@ -22,7 +14,7 @@ This is **not** a system proxy / MITM tool. It is a lightweight UI that sends re
 
 ## Current status
 
-### Phase 1 (current)
+### Phase 1 (Proxy workflow)
 
 **Proxy → Intercept**
 
@@ -37,8 +29,10 @@ This is **not** a system proxy / MITM tool. It is a lightweight UI that sends re
 
 - **Save as new** (creates a new history item)
 - **Row click** = load into Intercept in **edit mode** and auto-select the URL field
-- **Select button** = select for replay + prime Intercept without edit mode
+- **Select** = select for replay + prime Intercept without edit mode
 - **Overwrite selected** (only enabled when you entered edit mode via row click)
+- Scope badge per row (in-scope / out-of-scope)
+- Optional **Hide out-of-scope** filter
 
 **Replay**
 
@@ -58,17 +52,19 @@ This is **not** a system proxy / MITM tool. It is a lightweight UI that sends re
 - Lowercase header keys on send
 - Trim response headers display
 
-**Local echo target**
+### Phase 1.2 (Target: Scope + Site map)
 
-- `scripts/dev-echo.py` provides a CORS-friendly local target for sanity tests
+**Target → Scope**
 
-### Phase 1.2 (next)
+- Define in-scope hosts and path prefixes
+- Scope can be enabled/disabled
 
-**Target tab becomes functional**
+**Target → Site map**
 
-- **Scope**: define in-scope hosts/paths (string rules or regex)
-- **Site map**: build a host/path tree from saved history
-- Optional: highlight in-scope/out-of-scope items in History
+- Builds a host/path tree from saved history
+- Optional “In-scope only” filter
+- Click a node to load URL into **Proxy → Intercept** and navigate there
+- Copy URL per node
 
 ## Run locally
 
@@ -81,98 +77,46 @@ python -m http.server 5173 -d .\src
 Start-Process "http://127.0.0.1:5173/"
 ```
 
-### 2) Run local echo target (recommended)
+2. Run local echo target (recommended)
 
 From repo root:
 
-```powershell
+```
 python .\scripts\dev-echo.py
 ```
 
-## Sanity tests
+Sanity tests A)
 
-### A) GET
+```
+ GET
 
 Proxy → Intercept
 
-- Method: `GET`
-- URL: `http://127.0.0.1:8787/hello`
-- Send
+Method: GET
+
+URL: http://127.0.0.1:8787/hello
+
+Send
 
 Expected:
 
-- `res-meta` shows `200 OK` + timing
-- `res-body` returns JSON or text from echo
+res-meta shows 200 OK + timing
 
-### B) POST JSON
+res-body returns JSON or text from echo
+
+B) POST JSON
 
 Proxy → Intercept
 
-- Method: `POST`
-- URL: `http://127.0.0.1:8787/api`
-- Headers:
+Method: POST
 
-  - `Accept: application/json`
-  - `Content-Type: application/json`
+URL: http://127.0.0.1:8787/api
 
-- Body:
+Headers:
 
-```json
-{ "ping": "pong" }
+Accept: application/json
+
+Content-Type: application/json
+
+Body:{ "ping": "pong" }
 ```
-
-Expected:
-
-- Echo includes your body + headers
-
-### C) Save + Edit + Overwrite
-
-1. Intercept → **Save as new**
-2. Proxy → HTTP history
-3. **Click the row** (not Select)
-
-   - Should jump to Intercept and highlight/select URL
-   - **Overwrite selected** should enable
-
-4. Edit URL/body, then click **Overwrite selected**
-5. Go back to HTTP history → confirm the saved entry updated
-
-### D) Replay + Diff
-
-1. Select a request
-2. Replay (Raw)
-3. Change server response (or edit request) and Replay again
-4. Switch to Diff view
-
-## Repo layout
-
-```
-windowsBurpeSuite/
-  src/
-    index.html
-    css/styles.css
-    js/
-      app.js
-      ui.js
-      modules/
-        interceptor.js
-        repeater.js
-        diff.js
-        extender.js
-        headersEditor.js
-        storage.js
-  scripts/
-    dev-echo.py
-  docs/
-    TEST_UI.md
-```
-
-## Browser limitations (important)
-
-Because this phase runs entirely in the browser:
-
-- **CORS applies** (you can only call targets that allow it)
-- Some headers are browser-managed (can’t be manually set)
-- No socket-level proxying / CONNECT tunneling
-
-If you need non-CORS targets, that becomes a later optional phase with a lightweight companion backend.
