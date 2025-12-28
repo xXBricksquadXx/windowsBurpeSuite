@@ -1,3 +1,4 @@
+<!-- src/index.html (REPLACEMENT) -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -118,20 +119,102 @@
           <button class="subtab" data-main="target" data-subtab="issues" type="button">Issue definitions</button>
         </nav>
 
+        <!-- Target: Site map -->
         <section class="panel is-active subpanel" id="target-sitemap" data-main="target" data-subpanel="sitemap" aria-label="Target: Site map">
-          <div class="card">
-            <div class="card__title">Site map</div>
-            <div class="card__hint">Phase 1.2: build a host/path tree from captured traffic (Proxy history).</div>
+          <div class="grid">
+            <section class="card">
+              <div class="card__title">Site map</div>
+              <div class="card__hint">Build a host/path tree from captured traffic (Proxy history).</div>
+
+              <div class="row">
+                <label class="check">
+                  <input type="checkbox" id="sitemap-in-scope-only" />
+                  <span>In-scope only</span>
+                </label>
+              </div>
+
+              <div class="row">
+                <button id="btn-sitemap-refresh" class="btn secondary" type="button">Refresh</button>
+              </div>
+
+              <div class="row">
+                <div id="sitemap-meta" class="meta">—</div>
+              </div>
+
+              <div id="sitemap-tree" class="list"></div>
+            </section>
+
+            <section class="card">
+              <div class="card__title">How scope affects the map</div>
+              <div class="card__hint">
+                Define scope in <b>Target → Scope</b>. When “In-scope only” is enabled, the site map filters to URLs that match your scope rules.
+              </div>
+
+              <div class="card__hint">
+                Matching rules:
+                <ul>
+                  <li>If no scope rules exist, everything is considered in-scope.</li>
+                  <li>If hosts are set, host must match.</li>
+                  <li>If path prefixes are set, path must start with one of them.</li>
+                </ul>
+              </div>
+            </section>
           </div>
         </section>
 
+        <!-- Target: Scope -->
         <section class="panel subpanel" id="target-scope" data-main="target" data-subpanel="scope" aria-label="Target: Scope">
-          <div class="card">
-            <div class="card__title">Scope</div>
-            <div class="card__hint">Phase 1.2: define in-scope hosts/paths; later: enforce scope filters globally.</div>
+          <div class="grid">
+            <section class="card">
+              <div class="card__title">Scope</div>
+              <div class="card__hint">Define in-scope hosts and path prefixes. Stored locally in your browser.</div>
+
+              <div class="row">
+                <label class="check">
+                  <input type="checkbox" id="scope-enabled" checked />
+                  <span>Enable scope filtering</span>
+                </label>
+              </div>
+
+              <div class="row">
+                <div id="scope-meta" class="meta">—</div>
+              </div>
+
+              <div class="row">
+                <label class="label">Add host</label>
+                <input id="scope-host-input" placeholder="example.com:443 or https://example.com/api" />
+                <button id="scope-host-add" class="btn secondary" type="button">Add host</button>
+              </div>
+
+              <div class="row">
+                <label class="label">Hosts</label>
+                <div id="scope-host-list" class="list"></div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card__title">Path prefixes</div>
+              <div class="card__hint">Examples: <code>/api</code>, <code>/admin</code>, <code>/v1</code></div>
+
+              <div class="row">
+                <label class="label">Add path prefix</label>
+                <input id="scope-path-input" placeholder="/api" />
+                <button id="scope-path-add" class="btn secondary" type="button">Add prefix</button>
+              </div>
+
+              <div class="row">
+                <label class="label">Prefixes</label>
+                <div id="scope-path-list" class="list"></div>
+              </div>
+
+              <div class="row">
+                <button id="scope-clear" class="btn danger" type="button">Clear scope</button>
+              </div>
+            </section>
           </div>
         </section>
 
+        <!-- Target: Issue definitions -->
         <section class="panel subpanel" id="target-issues" data-main="target" data-subpanel="issues" aria-label="Target: Issue definitions">
           <div class="card">
             <div class="card__title">Issue definitions</div>

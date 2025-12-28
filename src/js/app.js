@@ -1,3 +1,4 @@
+// src/js/app.js (REPLACEMENT)
 import { bindNavigation, navigateTo } from "./ui.js";
 import {
   sendFromForm,
@@ -13,9 +14,15 @@ import {
 } from "./modules/repeater.js";
 import { getExtenderConfig, bindExtenderControls } from "./modules/extender.js";
 import { initHeaderEditor } from "./modules/headersEditor.js";
+import { initScopeUI } from "./modules/scope.js";
+import { initSitemapUI } from "./modules/sitemap.js";
 
 function byId(id) {
   return document.getElementById(id);
+}
+
+function emitHistoryChanged() {
+  window.dispatchEvent(new CustomEvent("wbs:history-changed"));
 }
 
 function wireInterceptor() {
@@ -27,6 +34,7 @@ function wireInterceptor() {
   byId("btn-save").addEventListener("click", () => {
     const id = saveCurrentToRepeater();
     if (id) {
+      emitHistoryChanged();
       navigateTo("proxy", "http");
       renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
     }
@@ -37,6 +45,7 @@ function wireInterceptor() {
     btnOverwrite.addEventListener("click", async () => {
       const overwrittenId = await overwriteFromForm();
       if (overwrittenId) {
+        emitHistoryChanged();
         renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
         setSelectedId(overwrittenId);
         navigateTo("proxy", "http");
@@ -67,7 +76,7 @@ function wireInterceptor() {
     if (el) el.addEventListener("change", update);
   });
 
-  // Headers editor + settings toggles dispatch events
+  // These listeners are harmless even if those events aren't emitted yet
   window.addEventListener("wbs:headers-changed", update);
   window.addEventListener("wbs:extender-changed", update);
 }
@@ -79,6 +88,7 @@ function wireRepeater() {
 
   byId("btn-clear").addEventListener("click", () => {
     clearAllSaved();
+    emitHistoryChanged();
     renderSavedList({ onSelect: (sid) => setSelectedId(sid) });
   });
 
@@ -117,6 +127,10 @@ function bootstrap() {
     defaults: { Accept: "application/json" },
   });
 
+  // Phase 1.2 init
+  initScopeUI();
+  initSitemapUI();
+
   wireInterceptor();
   wireRepeater();
   wireReplayViewToggle();
@@ -125,6 +139,9 @@ function bootstrap() {
 
   // initial preview render
   updateRequestPreview(getExtenderConfig());
+
+  // initial sitemap render (in case scope/sitemap init ran before storage was ready)
+  emitHistoryChanged();
 }
 
 bootstrap();
